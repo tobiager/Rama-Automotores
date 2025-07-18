@@ -105,7 +105,6 @@ export default function ContactoPage() {
               <h3 className="text-xl font-bold mb-4">¿Cómo trabajamos?</h3>
               <div className="space-y-4 text-gray-400">
                 <p>• Evaluamos tu vehículo sin compromiso</p>
-                <p>• Te conectamos con compradores serios</p>
                 <p>• Gestionamos toda la documentación</p>
                 <p>• Cobramos solo cuando se concreta la venta</p>
               </div>
