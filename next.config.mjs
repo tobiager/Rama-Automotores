@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -8,6 +11,14 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    domains: ['blob.vercel-storage.com'],
+  },
+  // Evitar problemas con rutas automáticas
+  trailingSlash: false,
+  // Configuración para manejar errores de build
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
   },
 }
 
