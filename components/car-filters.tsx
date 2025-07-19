@@ -4,22 +4,65 @@ import { useState, useMemo } from "react"
 import { Search, Filter, X } from "lucide-react"
 import CarCard from "./car-card"
 import type { Car } from "../lib/supabase"
+import { Button } from "@/components/ui/button" // Importar el componente Button
 
 interface CarFiltersProps {
   cars: Car[]
 }
 
 export default function CarFilters({ cars }: CarFiltersProps) {
+  const minCarPrice = useMemo(() => Math.min(...cars.map((car) => car.price)), [cars])
+  const maxCarPrice = useMemo(() => Math.max(...cars.map((car) => car.price)), [cars])
+
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedBrand, setSelectedBrand] = useState("")
-  const [priceRange, setPriceRange] = useState({ min: 0, max: 200000 })
-  const [yearRange, setYearRange] = useState({ min: 2015, max: 2024 })
+  const [priceRange, setPriceRange] = useState({
+    min: minCarPrice,
+    max: maxCarPrice,
+  })
+  const [yearRange, setYearRange] = useState({
+    min: 2000, // Hardcoded min year
+    max: 2025, // Hardcoded max year
+  })
   const [showFilters, setShowFilters] = useState(false)
 
   // Obtener marcas únicas
   const brands = useMemo(() => {
-    const uniqueBrands = [...new Set(cars.map((car) => car.brand))]
-    return uniqueBrands.sort()
+    const commonBrands = [
+      "Volkswagen",
+      "Ford",
+      "Chevrolet",
+      "Fiat",
+      "Renault",
+      "Peugeot",
+      "Toyota",
+      "Honda",
+      "Mercedes-Benz",
+      "BMW",
+      "Audi",
+      "Citroën",
+      "Nissan",
+      "Hyundai",
+      "Kia",
+      "Jeep",
+      "Ram",
+      "Chery",
+      "Mitsubishi",
+      "Subaru",
+      "Volvo",
+      "Porsche",
+      "Ferrari",
+      "Lamborghini",
+      "Tesla",
+      "Land Rover",
+      "Suzuki",
+      "Mazda",
+      "Chrysler",
+      "Dodge",
+      "Alfa Romeo",
+      ...new Set(cars.map((car) => car.brand)), // Add existing car brands from data
+    ]
+    return [...new Set(commonBrands)].sort() // Remove duplicates and sort
   }, [cars])
 
   // Filtrar autos
@@ -41,8 +84,14 @@ export default function CarFilters({ cars }: CarFiltersProps) {
   const clearFilters = () => {
     setSearchTerm("")
     setSelectedBrand("")
-    setPriceRange({ min: 0, max: 200000 })
-    setYearRange({ min: 2015, max: 2024 })
+    setPriceRange({
+      min: minCarPrice,
+      max: maxCarPrice,
+    })
+    setYearRange({
+      min: 2000,
+      max: 2025,
+    })
   }
 
   return (
@@ -67,13 +116,13 @@ export default function CarFilters({ cars }: CarFiltersProps) {
           {filteredCars.length} vehículo{filteredCars.length !== 1 ? "s" : ""} encontrado
           {filteredCars.length !== 1 ? "s" : ""}
         </h2>
-        <button
+        <Button
           onClick={() => setShowFilters(!showFilters)}
           className="md:hidden bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg flex items-center gap-2"
         >
           <Filter className="h-4 w-4" />
           Filtros
-        </button>
+        </Button>
       </div>
 
       <div className="flex flex-col md:flex-row gap-8">
@@ -82,10 +131,14 @@ export default function CarFilters({ cars }: CarFiltersProps) {
           <div className="bg-gray-800 p-6 rounded-lg sticky top-24">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Filtros</h3>
-              <button onClick={clearFilters} className="text-gray-400 hover:text-white flex items-center gap-1 text-sm">
+              <Button
+                onClick={clearFilters}
+                variant="ghost"
+                className="text-gray-400 hover:text-white flex items-center gap-1 text-sm"
+              >
                 <X className="h-4 w-4" />
                 Limpiar
-              </button>
+              </Button>
             </div>
 
             <div className="space-y-6">
@@ -114,8 +167,8 @@ export default function CarFilters({ cars }: CarFiltersProps) {
                 <div className="space-y-2">
                   <input
                     type="range"
-                    min="0"
-                    max="200000"
+                    min={minCarPrice}
+                    max={maxCarPrice}
                     step="5000"
                     value={priceRange.min}
                     onChange={(e) => setPriceRange((prev) => ({ ...prev, min: Number(e.target.value) }))}
@@ -123,8 +176,8 @@ export default function CarFilters({ cars }: CarFiltersProps) {
                   />
                   <input
                     type="range"
-                    min="0"
-                    max="200000"
+                    min={minCarPrice}
+                    max={maxCarPrice}
                     step="5000"
                     value={priceRange.max}
                     onChange={(e) => setPriceRange((prev) => ({ ...prev, max: Number(e.target.value) }))}
@@ -141,16 +194,16 @@ export default function CarFilters({ cars }: CarFiltersProps) {
                 <div className="space-y-2">
                   <input
                     type="range"
-                    min="2015"
-                    max="2024"
+                    min={2000}
+                    max={2025}
                     value={yearRange.min}
                     onChange={(e) => setYearRange((prev) => ({ ...prev, min: Number(e.target.value) }))}
                     className="w-full"
                   />
                   <input
                     type="range"
-                    min="2015"
-                    max="2024"
+                    min={2000}
+                    max={2025}
                     value={yearRange.max}
                     onChange={(e) => setYearRange((prev) => ({ ...prev, max: Number(e.target.value) }))}
                     className="w-full"
@@ -172,12 +225,12 @@ export default function CarFilters({ cars }: CarFiltersProps) {
           ) : (
             <div className="text-center py-20">
               <p className="text-gray-400 text-xl">No se encontraron vehículos con los filtros seleccionados.</p>
-              <button
+              <Button
                 onClick={clearFilters}
                 className="mt-4 bg-gray-700 hover:bg-gray-600 px-6 py-2 rounded-lg transition-colors"
               >
                 Limpiar filtros
-              </button>
+              </Button>
             </div>
           )}
         </div>

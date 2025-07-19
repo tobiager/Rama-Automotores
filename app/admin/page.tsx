@@ -5,6 +5,7 @@ import type React from "react"
 import { useState, useEffect, useMemo } from "react"
 import { Eye, EyeOff, Plus, Edit, Trash2, User, Lock, RotateCcw } from "lucide-react" // Importar Mail icon
 import MultipleImageUpload from "../../components/multiple-image-upload"
+import { Button } from "@/components/ui/button"
 import {
   getAllCars,
   createCar,
@@ -12,10 +13,10 @@ import {
   deleteCar,
   authenticateUser,
   restoreCar,
-  getAllContacts, // Importar getAllContacts
+  getAllContacts,
   type Car,
   type AdminUser,
-  type Contact, // Importar el tipo Contact
+  type Contact,
 } from "../../lib/supabase"
 
 export default function AdminPage() {
@@ -25,10 +26,10 @@ export default function AdminPage() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingCar, setEditingCar] = useState<Car | null>(null)
   const [allCars, setAllCars] = useState<Car[]>([])
-  const [contacts, setContacts] = useState<Contact[]>([]) // Nuevo estado para mensajes
+  const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(false)
   const [loginError, setLoginError] = useState("")
-  const [activeTab, setActiveTab] = useState<"cars" | "messages">("cars") // Nuevo estado para las pestañas
+  const [activeTab, setActiveTab] = useState<"cars" | "messages">("cars")
 
   const [filterStatus, setFilterStatus] = useState<"active" | "sold" | "deleted">("active")
 
@@ -366,22 +367,20 @@ export default function AdminPage() {
                   required
                   disabled={loading}
                 />
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
                   disabled={loading}
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
+                </Button>
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
-            >
+            <Button type="submit" disabled={loading} className="w-full">
               {loading ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -390,7 +389,7 @@ export default function AdminPage() {
               ) : (
                 "Iniciar Sesión"
               )}
-            </button>
+            </Button>
           </form>
         </div>
       </div>
@@ -406,7 +405,7 @@ export default function AdminPage() {
             <p className="text-gray-400 mt-1">Bienvenido, {currentUser.name}</p>
           </div>
           <div className="flex gap-4">
-            <button
+            <Button
               onClick={() => {
                 setActiveTab("cars")
                 setShowAddForm(!showAddForm)
@@ -416,16 +415,16 @@ export default function AdminPage() {
             >
               <Plus className="h-4 w-4" />
               Agregar Auto
-            </button>
-            <button onClick={handleLogout} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
+            </Button>
+            <Button onClick={handleLogout} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
               Cerrar Sesión
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Pestañas de navegación */}
         <div className="mb-6 flex space-x-4 border-b border-gray-700 pb-4">
-          <button
+          <Button
             onClick={() => {
               setActiveTab("cars")
               setShowAddForm(false)
@@ -435,8 +434,8 @@ export default function AdminPage() {
             }`}
           >
             Gestión de Autos
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => {
               setActiveTab("messages")
               setShowAddForm(false)
@@ -446,7 +445,7 @@ export default function AdminPage() {
             }`}
           >
             Mensajes de Contacto
-          </button>
+          </Button>
         </div>
 
         {/* Contenido de la pestaña de Autos */}
@@ -581,13 +580,13 @@ export default function AdminPage() {
                   <div>
                     <div className="flex justify-between items-center mb-2">
                       <label className="block text-sm font-medium">Características</label>
-                      <button
+                      <Button
                         type="button"
                         onClick={addFeature}
                         className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
                       >
                         Agregar
-                      </button>
+                      </Button>
                     </div>
                     <div className="space-y-2">
                       {newCar.features.map((feature, index) => (
@@ -599,33 +598,33 @@ export default function AdminPage() {
                             className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg"
                             placeholder="Ej: Navegación GPS"
                           />
-                          <button
+                          <Button
                             type="button"
                             onClick={() => removeFeature(index)}
                             className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg"
                           >
                             <Trash2 className="h-4 w-4" />
-                          </button>
+                          </Button>
                         </div>
                       ))}
                     </div>
                   </div>
 
                   <div className="flex gap-4">
-                    <button
+                    <Button
                       type="submit"
                       disabled={loading}
                       className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white px-6 py-2 rounded-lg"
                     >
                       {loading ? "Guardando..." : editingCar ? "Actualizar Auto" : "Agregar Auto"}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
                       onClick={resetForm}
                       className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-2 rounded-lg"
                     >
                       Cancelar
-                    </button>
+                    </Button>
                   </div>
                 </form>
               </div>
@@ -633,30 +632,30 @@ export default function AdminPage() {
 
             {/* Filtros de estado de autos */}
             <div className="mb-6 flex space-x-4">
-              <button
+              <Button
                 onClick={() => setFilterStatus("active")}
                 className={`px-4 py-2 rounded-lg font-medium ${
                   filterStatus === "active" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                 }`}
               >
                 Autos Activos
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => setFilterStatus("sold")}
                 className={`px-4 py-2 rounded-lg font-medium ${
                   filterStatus === "sold" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                 }`}
               >
                 Autos Vendidos
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => setFilterStatus("deleted")}
                 className={`px-4 py-2 rounded-lg font-medium ${
                   filterStatus === "deleted" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                 }`}
               >
                 Autos Eliminados
-              </button>
+              </Button>
             </div>
 
             {/* Lista de autos */}
@@ -726,7 +725,7 @@ export default function AdminPage() {
                             {car.deleted ? (
                               <span className="px-2 py-1 text-xs rounded-full bg-gray-500 text-white">Eliminado</span>
                             ) : (
-                              <button
+                              <Button
                                 onClick={() => toggleSoldStatus(car.id)}
                                 disabled={loading}
                                 className={`px-2 py-1 text-xs rounded-full ${
@@ -734,40 +733,46 @@ export default function AdminPage() {
                                 }`}
                               >
                                 {car.sold ? "Vendido" : "Disponible"}
-                              </button>
+                              </Button>
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex space-x-2">
                               {!car.deleted && (
                                 <>
-                                  <button
+                                  <Button
                                     onClick={() => handleEditCar(car)}
                                     disabled={loading}
                                     className="text-blue-400 hover:text-blue-300 p-1 rounded transition-colors"
                                     title="Editar auto"
+                                    variant="ghost"
+                                    size="icon"
                                   >
                                     <Edit className="h-4 w-4" />
-                                  </button>
-                                  <button
+                                  </Button>
+                                  <Button
                                     onClick={() => handleDeleteCar(car.id)}
                                     disabled={loading}
                                     className="text-red-400 hover:text-red-300 p-1 rounded transition-colors"
                                     title="Eliminar auto"
+                                    variant="ghost"
+                                    size="icon"
                                   >
                                     <Trash2 className="h-4 w-4" />
-                                  </button>
+                                  </Button>
                                 </>
                               )}
                               {car.deleted && (
-                                <button
+                                <Button
                                   onClick={() => handleRestoreCar(car.id)}
                                   disabled={loading}
                                   className="text-green-400 hover:text-green-300 p-1 rounded transition-colors"
                                   title="Restaurar auto"
+                                  variant="ghost"
+                                  size="icon"
                                 >
                                   <RotateCcw className="h-4 w-4" />
-                                </button>
+                                </Button>
                               )}
                             </div>
                           </td>
