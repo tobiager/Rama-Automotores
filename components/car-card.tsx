@@ -87,6 +87,8 @@ export default function CarCard({ car }: CarCardProps) {
               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors text-sm font-medium"
             >
               <Link href={`/autos/${car.id}`}>
+                {" "}
+                {/* Link es el hijo directo */}
                 <Eye className="h-4 w-4" />
                 Ver
               </Link>
