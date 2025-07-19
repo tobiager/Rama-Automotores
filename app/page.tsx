@@ -21,23 +21,21 @@ export default async function Home() {
             Tu intermediario de confianza en la compra y venta de vehículos
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/autos" passHref legacyBehavior>
-              <Button
-                size="lg"
-                className="bg-gray-700 hover:bg-gray-600 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 inline-block text-center"
-              >
-                Ver Catálogo
-              </Button>
-            </Link>
-            <Link href="/contacto" passHref legacyBehavior>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-gray-600 hover:bg-gray-800 text-white rounded-lg text-lg font-semibold transition-all inline-block text-center bg-transparent"
-              >
-                Contactanos
-              </Button>
-            </Link>
+            <Button
+              asChild // Usar asChild
+              size="lg"
+              className="bg-gray-700 hover:bg-gray-600 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 inline-block text-center"
+            >
+              <Link href="/autos">Ver Catálogo</Link>
+            </Button>
+            <Button
+              asChild // Usar asChild
+              size="lg"
+              variant="outline"
+              className="border-gray-600 hover:bg-gray-800 text-white rounded-lg text-lg font-semibold transition-all inline-block text-center bg-transparent"
+            >
+              <Link href="/contacto">Contactanos</Link>
+            </Button>
           </div>
         </div>
       </section>
@@ -84,11 +82,12 @@ export default async function Home() {
             ))}
           </div>
           <div className="text-center mt-12">
-            <Link href="/autos" passHref legacyBehavior>
-              <Button className="bg-gray-700 hover:bg-gray-600 rounded-lg text-lg font-semibold transition-all inline-block">
-                Ver Todos los Autos
-              </Button>
-            </Link>
+            <Button
+              asChild // Usar asChild
+              className="bg-gray-700 hover:bg-gray-600 rounded-lg text-lg font-semibold transition-all inline-block"
+            >
+              <Link href="/autos">Ver Todos los Autos</Link>
+            </Button>
           </div>
         </div>
       </section>

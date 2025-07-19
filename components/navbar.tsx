@@ -32,9 +32,12 @@ export default function Navbar() {
             <Link href="/contacto" className="text-gray-300 hover:text-white transition-colors">
               Contacto
             </Link>
-            <Link href="/admin" passHref legacyBehavior>
-              <Button className="bg-gray-700 hover:bg-gray-600 rounded-lg px-4 py-2 transition-colors">Admin</Button>
-            </Link>
+            <Button
+              asChild // Usar asChild
+              className="bg-gray-700 hover:bg-gray-600 rounded-lg px-4 py-2 transition-colors"
+            >
+              <Link href="/admin">Admin</Link>
+            </Button>
           </div>
 
           {/* Mobile menu button */}
@@ -61,11 +64,12 @@ export default function Navbar() {
               <Link href="/contacto" className="block px-3 py-2 text-gray-300 hover:text-white">
                 Contacto
               </Link>
-              <Link href="/admin" passHref legacyBehavior>
-                <Button className="block w-full text-left bg-gray-700 hover:bg-gray-600 rounded-lg text-white">
-                  Admin
-                </Button>
-              </Link>
+              <Button
+                asChild // Usar asChild
+                className="block w-full text-left bg-gray-700 hover:bg-gray-600 rounded-lg text-white"
+              >
+                <Link href="/admin">Admin</Link>
+              </Button>
             </div>
           </div>
         )}
