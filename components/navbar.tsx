@@ -32,12 +32,9 @@ export default function Navbar() {
             <Link href="/contacto" className="text-gray-300 hover:text-white transition-colors">
               Contacto
             </Link>
-            <Button
-              asChild // Usar asChild
-              className="bg-gray-700 hover:bg-gray-600 rounded-lg px-4 py-2 transition-colors inline-flex items-center justify-center" // Añadir inline-flex items-center justify-center
-            >
-              <Link href="/admin">Admin</Link> {/* Link es el hijo directo */}
-            </Button>
+            <Link href="/admin" passHref legacyBehavior>
+              <Button className="bg-gray-700 hover:bg-gray-600 rounded-lg px-4 py-2 transition-colors">Admin</Button>
+            </Link>
           </div>
 
           {/* Mobile menu button */}
@@ -64,12 +61,11 @@ export default function Navbar() {
               <Link href="/contacto" className="block px-3 py-2 text-gray-300 hover:text-white">
                 Contacto
               </Link>
-              <Button
-                asChild // Usar asChild
-                className="block w-full text-left bg-gray-700 hover:bg-gray-600 rounded-lg text-white inline-flex items-center justify-center" // Añadir inline-flex items-center justify-center
-              >
-                <Link href="/admin">Admin</Link> {/* Link es el hijo directo */}
-              </Button>
+              <Link href="/admin" passHref legacyBehavior>
+                <Button className="block w-full text-left bg-gray-700 hover:bg-gray-600 rounded-lg text-white">
+                  Admin
+                </Button>
+              </Link>
             </div>
           </div>
         )}

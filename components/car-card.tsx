@@ -82,17 +82,17 @@ export default function CarCard({ car }: CarCardProps) {
           </div>
 
           <div className="flex gap-2 w-full">
-            <Button
-              asChild // Usar asChild para que el Link sea el elemento renderizado
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors text-sm font-medium"
-            >
-              <Link href={`/autos/${car.id}`}>
-                {" "}
-                {/* Link es el hijo directo */}
-                <Eye className="h-4 w-4" />
-                Ver
-              </Link>
-            </Button>
+            <Link href={`/autos/${car.id}`} passHref legacyBehavior>
+              <Button
+                asChild // Importante: Aquí se agrega asChild
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors text-sm font-medium"
+              >
+                <a>
+                  <Eye className="h-4 w-4" />
+                  Ver
+                </a>
+              </Button>
+            </Link>
             {!car.sold && (
               <Button
                 onClick={handleWhatsAppClick}
