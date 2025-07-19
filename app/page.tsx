@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Car, Shield, Users, Award } from "lucide-react"
 import CarCard from "../components/car-card"
 import { getAvailableCars } from "../lib/supabase"
+import { Button } from "@/components/ui/button" // Importar Button
 
 export default async function Home() {
   const cars = await getAvailableCars()
@@ -20,17 +21,22 @@ export default async function Home() {
             Tu intermediario de confianza en la compra y venta de vehículos
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/autos"
-              className="bg-gray-700 hover:bg-gray-600 px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 inline-block text-center"
-            >
-              Ver Catálogo
+            <Link href="/autos" passHref legacyBehavior>
+              <Button
+                size="lg"
+                className="bg-gray-700 hover:bg-gray-600 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 inline-block text-center"
+              >
+                Ver Catálogo
+              </Button>
             </Link>
-            <Link
-              href="/contacto"
-              className="border border-gray-600 hover:bg-gray-800 px-8 py-4 rounded-lg text-lg font-semibold transition-all inline-block text-center"
-            >
-              Contactanos
+            <Link href="/contacto" passHref legacyBehavior>
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-gray-600 hover:bg-gray-800 text-white rounded-lg text-lg font-semibold transition-all inline-block text-center bg-transparent"
+              >
+                Contactanos
+              </Button>
             </Link>
           </div>
         </div>
@@ -78,11 +84,10 @@ export default async function Home() {
             ))}
           </div>
           <div className="text-center mt-12">
-            <Link
-              href="/autos"
-              className="bg-gray-700 hover:bg-gray-600 px-8 py-4 rounded-lg text-lg font-semibold transition-all inline-block"
-            >
-              Ver Todos los Autos
+            <Link href="/autos" passHref legacyBehavior>
+              <Button className="bg-gray-700 hover:bg-gray-600 rounded-lg text-lg font-semibold transition-all inline-block">
+                Ver Todos los Autos
+              </Button>
             </Link>
           </div>
         </div>

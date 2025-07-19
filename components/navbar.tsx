@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useState } from "react"
 import { Menu, X, Car } from "lucide-react"
+import { Button } from "@/components/ui/button" // Importar Button
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
@@ -31,8 +32,8 @@ export default function Navbar() {
             <Link href="/contacto" className="text-gray-300 hover:text-white transition-colors">
               Contacto
             </Link>
-            <Link href="/admin" className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg transition-colors">
-              Admin
+            <Link href="/admin" passHref legacyBehavior>
+              <Button className="bg-gray-700 hover:bg-gray-600 rounded-lg px-4 py-2 transition-colors">Admin</Button>
             </Link>
           </div>
 
@@ -60,8 +61,10 @@ export default function Navbar() {
               <Link href="/contacto" className="block px-3 py-2 text-gray-300 hover:text-white">
                 Contacto
               </Link>
-              <Link href="/admin" className="block px-3 py-2 bg-gray-700 rounded-lg text-white">
-                Admin
+              <Link href="/admin" passHref legacyBehavior>
+                <Button className="block w-full text-left bg-gray-700 hover:bg-gray-600 rounded-lg text-white">
+                  Admin
+                </Button>
               </Link>
             </div>
           </div>
