@@ -5,6 +5,7 @@ import Link from "next/link"
 import { ArrowLeft, Calendar, Gauge, Fuel, Settings, Palette, Star, MessageCircle } from "lucide-react"
 import { getCarById } from "../../../lib/supabase"
 import ImageGallery from "../../../components/image-gallery"
+import { Button } from "@/components/ui/button" // Importar Button
 
 interface CarDetailPageProps {
   params: { id: string }
@@ -167,13 +168,13 @@ export default async function CarDetailPage({ params }: CarDetailPageProps) {
                   Contáctanos por WhatsApp para más información, fotos adicionales o para coordinar una visita.
                 </p>
 
-                <button
+                <Button
                   onClick={handleWhatsAppClick}
                   className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 px-6 rounded-lg flex items-center justify-center gap-3 transition-colors"
                 >
                   <MessageCircle className="h-5 w-5" />
                   Consultar por WhatsApp
-                </button>
+                </Button>
               </div>
             )}
 
@@ -184,18 +185,15 @@ export default async function CarDetailPage({ params }: CarDetailPageProps) {
                 <p className="text-red-300">
                   Este vehículo ya ha sido vendido. Puedes ver otros vehículos disponibles en nuestro catálogo.
                 </p>
-                <Link
-                  href="/autos"
-                  className="inline-block mt-4 bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition-colors"
-                >
-                  Ver Otros Vehículos
+                <Link href="/autos" passHref legacyBehavior>
+                  <Button className="inline-block mt-4 bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition-colors">
+                    Ver Otros Vehículos
+                  </Button>
                 </Link>
               </div>
             )}
           </div>
         </div>
-
-      
       </div>
     </div>
   )
