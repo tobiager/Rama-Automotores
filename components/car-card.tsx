@@ -81,13 +81,13 @@ export default function CarCard({ car }: CarCardProps) {
           </div>
 
           <div className="flex gap-2 w-full">
-            <Link
-              href={`/autos/${car.id}`}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors text-sm font-medium"
-            >
-              <Eye className="h-4 w-4" />
-              Ver
+            <Link href={`/autos/${car.id}`} legacyBehavior>
+              <a className="...">
+                <Eye className="h-4 w-4" />
+                Ver
+              </a>
             </Link>
+
             {!car.sold && (
               <button
                 onClick={handleWhatsAppClick}
