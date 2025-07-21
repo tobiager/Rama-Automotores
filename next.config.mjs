@@ -11,19 +11,15 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    domains: ['blob.vercel-storage.com'],
   },
-  // Configuración para manejar rutas 404 correctamente
-  async redirects() {
-    return [
-      {
-        source: '/_not-found',
-        destination: '/404',
-        permanent: false,
-      },
-    ]
+  // Evitar problemas con rutas automáticas
+  trailingSlash: false,
+  // Configuración para manejar errores de build
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
   },
-  // Configuración adicional para evitar conflictos
-  pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
 }
 
 export default nextConfig
