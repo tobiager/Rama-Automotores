@@ -185,12 +185,12 @@ export default async function CarDetailPage({ params }: CarDetailPageProps) {
                 <p className="text-red-300">
                   Este vehículo ya ha sido vendido. Puedes ver otros vehículos disponibles en nuestro catálogo.
                 </p>
-                <Link
-                  href="/autos"
-                  className="inline-block mt-4 bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition-colors"
+                <Button
+                  asChild // Usar asChild
+                  className="inline-block mt-4 bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition-colors inline-flex items-center justify-center" // Añadir inline-flex items-center justify-center
                 >
-                  Ver Otros Vehículos
-                </Link>
+                  <Link href="/autos">Ver Otros Vehículos</Link> {/* Link es el hijo directo */}
+                </Button>
               </div>
             )}
           </div>

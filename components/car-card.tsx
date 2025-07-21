@@ -3,6 +3,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { MessageCircle, Calendar, DollarSign, Eye } from "lucide-react"
 import { useState } from "react"
+import { Button } from "@/components/ui/button" // Importar Button
 
 interface Car {
   id: number
@@ -81,21 +82,25 @@ export default function CarCard({ car }: CarCardProps) {
           </div>
 
           <div className="flex gap-2 w-full">
-            <Link href={`/autos/${car.id}`} legacyBehavior>
-              <a className="...">
+            <Button
+              asChild // Usar asChild para que el Link sea el elemento renderizado
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors text-sm font-medium"
+            >
+              <Link href={`/autos/${car.id}`}>
+                {" "}
+                {/* Link es el hijo directo */}
                 <Eye className="h-4 w-4" />
                 Ver
-              </a>
-            </Link>
-
+              </Link>
+            </Button>
             {!car.sold && (
-              <button
+              <Button
                 onClick={handleWhatsAppClick}
                 className="flex-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors text-sm font-medium"
               >
                 <MessageCircle className="h-4 w-4" />
                 WhatsApp
-              </button>
+              </Button>
             )}
           </div>
         </div>
