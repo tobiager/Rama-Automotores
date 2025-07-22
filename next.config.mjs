@@ -10,24 +10,20 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    unoptimized: false,
-    domains: ['blob.vercel-storage.com', 'placeholder.svg'],
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**.vercel-storage.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'placeholder.svg',
-      }
-    ],
+    unoptimized: true,
   },
-  // Asegurar que CSS se compile correctamente
-  swcMinify: true,
-  // Configuración para producción
-  poweredByHeader: false,
-  reactStrictMode: true,
+  // Configuración para manejar rutas 404 correctamente
+  async redirects() {
+    return [
+      {
+        source: '/_not-found',
+        destination: '/404',
+        permanent: false,
+      },
+    ]
+  },
+  // Configuración adicional para evitar conflictos
+  pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
 }
 
 export default nextConfig
