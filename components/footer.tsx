@@ -22,7 +22,6 @@ export default function Footer() {
               <li><Link href="/" className="text-gray-400 hover:text-blue-400">Inicio</Link></li>
               <li><Link href="/autos" className="text-gray-400 hover:text-blue-400">Autos en Venta</Link></li>
               <li><Link href="/vendidos" className="text-gray-400 hover:text-blue-400">Vendidos</Link></li>
-              <li><Link href="/financiacion" className="text-gray-400 hover:text-blue-400">Financiación</Link></li>
               <li><Link href="/quienes-somos" className="text-gray-400 hover:text-blue-400">Quiénes Somos</Link></li>
               <li><Link href="/contacto" className="text-gray-400 hover:text-blue-400">Contacto</Link></li>
             </ul>
