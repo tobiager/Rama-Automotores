@@ -44,13 +44,13 @@ export default function Navbar() {
 
         {isOpen && (
           <div className="md:hidden bg-black/95 px-4 py-3 space-y-2">
-            {["/", "/autos", "/vendidos", "/financiacion", "/quienes-somos", "/contacto"].map((path, i) => (
+            {["/", "/autos", "/vendidos", "/quienes-somos", "/contacto"].map((path, i) => (
               <Link
                 key={i}
                 href={path}
                 className="block text-gray-300 hover:text-blue-400 transition-colors"
               >
-                {["Inicio", "Autos en Venta", "Vendidos", "Financiación", "Quiénes Somos", "Contacto"][i]}
+                {["Inicio", "Autos en Venta", "Vendidos", "Quiénes Somos", "Contacto"][i]}
               </Link>
             ))}
             <Link
