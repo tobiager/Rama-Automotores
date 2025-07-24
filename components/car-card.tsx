@@ -3,7 +3,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { MessageCircle, Calendar, DollarSign, Eye } from "lucide-react"
 import { useState } from "react"
-import { Button } from "@/components/ui/button" // Importar Button
+import { Button } from "@/components/ui/button"
 
 interface Car {
   id: number
@@ -45,7 +45,7 @@ export default function CarCard({ car }: CarCardProps) {
       <div className="relative">
         <div className="relative h-64 bg-gray-700 rounded-t-lg overflow-hidden">
           <Image
-            src={getImageSrc() || "/placeholder.svg"}
+            src={getImageSrc()}
             alt={`${car.brand} ${car.model}`}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -81,22 +81,23 @@ export default function CarCard({ car }: CarCardProps) {
             </div>
           </div>
 
-          <div className="flex gap-2 w-full">
+          <div className="flex gap-3 w-full mt-4">
             <Button
-              asChild // Usar asChild para que el Link sea el elemento renderizado
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors text-sm font-medium"
+              asChild
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl flex items-center justify-center gap-2 transition-all text-base font-semibold shadow-md hover:shadow-lg"
             >
               <Link href={`/autos/${car.id}`}>
-                <Eye className="h-4 w-4" />
+                <Eye className="h-5 w-5" />
                 Ver
               </Link>
             </Button>
+
             {!car.sold && (
               <Button
                 onClick={handleWhatsAppClick}
-                className="flex-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors text-sm font-medium"
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-xl flex items-center justify-center gap-2 transition-all text-base font-semibold shadow-md hover:shadow-lg"
               >
-                <MessageCircle className="h-4 w-4" />
+                <MessageCircle className="h-5 w-5" />
                 WhatsApp
               </Button>
             )}
