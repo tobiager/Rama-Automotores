@@ -3,7 +3,7 @@ import { Phone, Mail, MapPin, Clock } from "lucide-react"
 
 export default function Footer() {
   return (
-    <footer className="bg-black border-t border-gray-800">
+    <footer className="bg-gradient-to-b from-gray-900 to-black border-t border-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Info empresa */}
@@ -19,10 +19,12 @@ export default function Footer() {
           <div>
             <h4 className="text-lg font-semibold mb-4">Enlaces</h4>
             <ul className="space-y-2">
-              <li><Link href="/" className="text-gray-400 hover:text-white">Inicio</Link></li>
-              <li><Link href="/autos" className="text-gray-400 hover:text-white">Autos en Venta</Link></li>
-              <li><Link href="/vendidos" className="text-gray-400 hover:text-white">Vendidos</Link></li>
-              <li><Link href="/contacto" className="text-gray-400 hover:text-white">Contacto</Link></li>
+              <li><Link href="/" className="text-gray-400 hover:text-blue-400">Inicio</Link></li>
+              <li><Link href="/autos" className="text-gray-400 hover:text-blue-400">Autos en Venta</Link></li>
+              <li><Link href="/vendidos" className="text-gray-400 hover:text-blue-400">Vendidos</Link></li>
+              <li><Link href="/financiacion" className="text-gray-400 hover:text-blue-400">Financiación</Link></li>
+              <li><Link href="/quienes-somos" className="text-gray-400 hover:text-blue-400">Quiénes Somos</Link></li>
+              <li><Link href="/contacto" className="text-gray-400 hover:text-blue-400">Contacto</Link></li>
             </ul>
           </div>
 
