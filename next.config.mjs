@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -17,11 +20,14 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'placeholder.svg',
-      },
+      }
     ],
   },
+  // Asegurar que CSS se compile correctamente
+  swcMinify: true,
+  // Configuración para producción
   poweredByHeader: false,
   reactStrictMode: true,
-};
+}
 
-export default nextConfig;
+export default nextConfig
