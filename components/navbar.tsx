@@ -9,21 +9,28 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <nav className="fixed top-0 w-full bg-black/95 backdrop-blur-sm border-b border-gray-800 z-50">
+    <nav className="fixed top-0 w-full bg-black/95 backdrop-blur-sm border-b border-gray-800 z-50 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link href="/" className="flex items-center space-x-2">
-            <Car className="h-6 w-6 text-white" />
+            <Car className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             <span className="text-lg font-semibold text-white">Rama Automotores</span>
           </Link>
 
           <div className="hidden md:flex items-center space-x-6">
             {["/", "/autos", "/vendidos", "/contacto"].map((path, i) => (
-              <Link key={i} href={path} className="text-gray-300 hover:text-white transition-colors">
+              <Link
+                key={i}
+                href={path}
+                className="text-gray-300 hover:text-white transition-colors"
+              >
                 {["Inicio", "Autos en Venta", "Vendidos", "Contacto"][i]}
               </Link>
             ))}
-            <Button asChild className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-md text-white">
+            <Button
+              asChild
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium px-4 py-2 rounded-md shadow-md transition-all"
+            >
               <Link href="/admin">Admin</Link>
             </Button>
           </div>
@@ -38,19 +45,20 @@ export default function Navbar() {
         {isOpen && (
           <div className="md:hidden bg-black/95 px-4 py-3 space-y-2">
             {["/", "/autos", "/vendidos", "/contacto"].map((path, i) => (
-              <Link key={i} href={path} className="block text-gray-300 hover:text-white">
+              <Link
+                key={i}
+                href={path}
+                className="block text-gray-300 hover:text-white transition-colors"
+              >
                 {["Inicio", "Autos en Venta", "Vendidos", "Contacto"][i]}
               </Link>
             ))}
-              <Link
-                href="/admin"
-                className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2 rounded-md shadow transition-all duration-200 font-medium"
-              >
-                <span className="material-symbols-outlined text-sm">admin_panel_settings</span>
-                Admin
-              </Link>
-
-
+            <Link
+              href="/admin"
+              className="block w-full text-center bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium px-4 py-2 rounded-md shadow-md transition-all"
+            >
+              Admin
+            </Link>
           </div>
         )}
       </div>
