@@ -2,7 +2,7 @@ import Link from "next/link"
 import { Car, Shield, Users, Award } from "lucide-react"
 import CarCard from "../components/car-card"
 import { getAvailableCars } from "../lib/supabase"
-import { Button } from "@/components/ui/button" // Importar Button
+import { Button } from "@/components/ui/button"
 
 export default async function Home() {
   const cars = await getAvailableCars()
@@ -22,19 +22,19 @@ export default async function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
-              asChild // Usar asChild
+              asChild
               size="lg"
-              className="bg-gray-700 hover:bg-gray-600 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 inline-block text-center"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-semibold shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 hover:scale-[1.02]"
             >
-              <Link href="/autos">Ver Catálogo</Link>
+              <Link href="/autos">🚗 Ver Catálogo</Link>
             </Button>
+
             <Button
-              asChild // Usar asChild
+              asChild
               size="lg"
-              variant="outline"
-              className="border-gray-600 hover:bg-gray-800 text-white rounded-lg text-lg font-semibold transition-all inline-block text-center bg-transparent"
+              className="bg-transparent border border-white/30 hover:bg-white/10 text-white px-6 py-4 rounded-2xl font-semibold shadow-sm hover:shadow-lg transition-all transform hover:-translate-y-0.5 hover:scale-[1.02]"
             >
-              <Link href="/contacto">Contactanos</Link>
+              <Link href="/contacto">📞 Contactanos</Link>
             </Button>
           </div>
         </div>
@@ -83,8 +83,8 @@ export default async function Home() {
           </div>
           <div className="text-center mt-12">
             <Button
-              asChild // Usar asChild
-              className="bg-gray-700 hover:bg-gray-600 rounded-lg text-lg font-semibold transition-all inline-block"
+              asChild
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 hover:scale-[1.02]"
             >
               <Link href="/autos">Ver Todos los Autos</Link>
             </Button>
