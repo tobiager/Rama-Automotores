@@ -34,9 +34,9 @@ export default function Navbar() {
             </Link>
             <Button
               asChild // Usar asChild
-              className="bg-gray-700 hover:bg-gray-600 rounded-lg px-4 py-2 transition-colors inline-flex items-center justify-center" // Añadir inline-flex items-center justify-center
+              className="bg-gray-700 hover:bg-gray-600 rounded-lg px-4 py-2 transition-colors"
             >
-              <Link href="/admin">Admin</Link> {/* Link es el hijo directo */}
+              <Link href="/admin">Admin</Link>
             </Button>
           </div>
 
@@ -66,9 +66,9 @@ export default function Navbar() {
               </Link>
               <Button
                 asChild // Usar asChild
-                className="block w-full text-left bg-gray-700 hover:bg-gray-600 rounded-lg text-white inline-flex items-center justify-center" // Añadir inline-flex items-center justify-center
+                className="block w-full text-left bg-gray-700 hover:bg-gray-600 rounded-lg text-white"
               >
-                <Link href="/admin">Admin</Link> {/* Link es el hijo directo */}
+                <Link href="/admin">Admin</Link>
               </Button>
             </div>
           </div>

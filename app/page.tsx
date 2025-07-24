@@ -24,17 +24,17 @@ export default async function Home() {
             <Button
               asChild // Usar asChild
               size="lg"
-              className="bg-gray-700 hover:bg-gray-600 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 inline-flex items-center justify-center" // Añadir flex items-center justify-center
+              className="bg-gray-700 hover:bg-gray-600 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 inline-block text-center"
             >
-              <Link href="/autos">Ver Catálogo</Link> {/* Link es el hijo directo */}
+              <Link href="/autos">Ver Catálogo</Link>
             </Button>
             <Button
               asChild // Usar asChild
               size="lg"
               variant="outline"
-              className="border-gray-600 hover:bg-gray-800 text-white text-lg font-semibold transition-all inline-flex items-center justify-center bg-transparent" // Añadir flex items-center justify-center
+              className="border-gray-600 hover:bg-gray-800 text-white rounded-lg text-lg font-semibold transition-all inline-block text-center bg-transparent"
             >
-              <Link href="/contacto">Contactanos</Link> {/* Link es el hijo directo */}
+              <Link href="/contacto">Contactanos</Link>
             </Button>
           </div>
         </div>
@@ -84,9 +84,9 @@ export default async function Home() {
           <div className="text-center mt-12">
             <Button
               asChild // Usar asChild
-              className="bg-gray-700 hover:bg-gray-600 rounded-lg text-lg font-semibold transition-all inline-flex items-center justify-center" // Añadir flex items-center justify-center
+              className="bg-gray-700 hover:bg-gray-600 rounded-lg text-lg font-semibold transition-all inline-block"
             >
-              <Link href="/autos">Ver Todos los Autos</Link> {/* Link es el hijo directo */}
+              <Link href="/autos">Ver Todos los Autos</Link>
             </Button>
           </div>
         </div>
