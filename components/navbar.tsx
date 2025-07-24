@@ -18,13 +18,13 @@ export default function Navbar() {
           </Link>
 
           <div className="hidden md:flex items-center space-x-6">
-            {["/", "/autos", "/vendidos", "/financiacion", "/quienes-somos", "/contacto"].map((path, i) => (
+            {["/", "/autos", "/vendidos", "/quienes-somos", "/contacto"].map((path, i) => (
               <Link
                 key={i}
                 href={path}
                 className="text-gray-300 hover:text-blue-400 transition-colors"
               >
-                {["Inicio", "Autos en Venta", "Vendidos", "Financiación", "Quiénes Somos", "Contacto"][i]}
+                {["Inicio", "Autos en Venta", "Vendidos", "Quiénes Somos", "Contacto"][i]}
               </Link>
             ))}
             <Button
