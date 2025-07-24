@@ -26,7 +26,7 @@ export default async function Home() {
               size="lg"
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-semibold shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 hover:scale-[1.02]"
             >
-              <Link href="/autos">🚗 Ver Catálogo</Link>
+              <Link href="/autos">Ver Catálogo</Link>
             </Button>
 
             <Button
@@ -34,7 +34,7 @@ export default async function Home() {
               size="lg"
               className="bg-transparent border border-white/30 hover:bg-white/10 text-white px-6 py-4 rounded-2xl font-semibold shadow-sm hover:shadow-lg transition-all transform hover:-translate-y-0.5 hover:scale-[1.02]"
             >
-              <Link href="/contacto">📞 Contactanos</Link>
+              <Link href="/contacto">Contactanos</Link>
             </Button>
           </div>
         </div>
