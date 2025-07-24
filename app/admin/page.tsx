@@ -494,7 +494,7 @@ export default function AdminPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-2">Precio (USD) *</label>
+                      <label className="block text-sm font-medium mb-2">Precio (ARS) *</label>
                       <input
                         type="number"
                         value={newCar.price}
