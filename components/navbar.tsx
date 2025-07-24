@@ -42,9 +42,13 @@ export default function Navbar() {
                 {["Inicio", "Autos en Venta", "Vendidos", "Contacto"][i]}
               </Link>
             ))}
-            <Button asChild className="block w-full text-left bg-gray-700 hover:bg-gray-600 rounded-md text-white">
-              <Link href="/admin">Admin</Link>
-            </Button>
+              <Link
+                href="/admin"
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium px-4 py-2 rounded-md shadow-md transition-all duration-200"
+              >
+                Admin
+              </Link>
+
           </div>
         )}
       </div>
