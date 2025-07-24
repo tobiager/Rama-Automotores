@@ -71,7 +71,12 @@ export default function CarCard({ car }: CarCardProps) {
           </div>
         </div>
 
-        <p className="text-gray-400 mb-4 line-clamp-2 text-sm leading-relaxed flex-1">{car.description}</p>
+        <p className="text-gray-400 mb-4 text-sm leading-relaxed flex-1">
+          {car.description?.length > 80
+            ? car.description.substring(0, 80) + "..."
+            : car.description}
+        </p>
+
 
         <div className="mt-auto">
           <div className="flex items-center justify-between mb-4">
