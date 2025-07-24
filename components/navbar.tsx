@@ -9,7 +9,7 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <nav className="fixed top-0 w-full bg-black/95 backdrop-blur-sm border-b border-gray-800 z-50 transition-all duration-300">
+    <nav className="fixed top-0 w-full bg-black/95 backdrop-blur-sm border-b border-gray-800 shadow-md z-50 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link href="/" className="flex items-center space-x-2">
@@ -18,13 +18,13 @@ export default function Navbar() {
           </Link>
 
           <div className="hidden md:flex items-center space-x-6">
-            {["/", "/autos", "/vendidos", "/contacto"].map((path, i) => (
+            {["/", "/autos", "/vendidos", "/quienes-somos", "/contacto"].map((path, i) => (
               <Link
                 key={i}
                 href={path}
-                className="text-gray-300 hover:text-white transition-colors"
+                className="text-gray-300 hover:text-blue-400 transition-colors"
               >
-                {["Inicio", "Autos en Venta", "Vendidos", "Contacto"][i]}
+                {["Inicio", "Autos en Venta", "Vendidos", "Quiénes Somos", "Contacto"][i]}
               </Link>
             ))}
             <Button
@@ -44,13 +44,13 @@ export default function Navbar() {
 
         {isOpen && (
           <div className="md:hidden bg-black/95 px-4 py-3 space-y-2">
-            {["/", "/autos", "/vendidos", "/contacto"].map((path, i) => (
+            {["/", "/autos", "/vendidos", "/quienes-somos", "/contacto"].map((path, i) => (
               <Link
                 key={i}
                 href={path}
-                className="block text-gray-300 hover:text-white transition-colors"
+                className="block text-gray-300 hover:text-blue-400 transition-colors"
               >
-                {["Inicio", "Autos en Venta", "Vendidos", "Contacto"][i]}
+                {["Inicio", "Autos en Venta", "Vendidos", "Quiénes Somos", "Contacto"][i]}
               </Link>
             ))}
             <Link
