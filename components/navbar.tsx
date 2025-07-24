@@ -44,10 +44,12 @@ export default function Navbar() {
             ))}
               <Link
                 href="/admin"
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium px-4 py-2 rounded-md shadow-md transition-all duration-200"
+                className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2 rounded-md shadow transition-all duration-200 font-medium"
               >
+                <span className="material-symbols-outlined text-sm">admin_panel_settings</span>
                 Admin
               </Link>
+
 
           </div>
         )}
