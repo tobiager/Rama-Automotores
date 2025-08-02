@@ -5,6 +5,24 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+export async function getLastCotizacionUrl(): Promise<string | null> {
+  const { data, error } = await supabase.storage.from("cotizaciones").list("")
+
+  if (error || !data || data.length === 0) {
+    console.error("Error fetching cotizacion file:", error)
+    return null
+  }
+
+  const latest = data.sort((a, b) => {
+    const dateA = new Date(a.created_at || 0).getTime()
+    const dateB = new Date(b.created_at || 0).getTime()
+    return dateB - dateA
+  })[0]
+
+  const { data: urlData } = supabase.storage.from("cotizaciones").getPublicUrl(latest.name)
+  return urlData.publicUrl
+}
+
 export interface Car {
   id: number
   brand: string
