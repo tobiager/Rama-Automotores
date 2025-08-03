@@ -45,6 +45,8 @@ Podés seguir construyendo el sitio desde la plataforma v0 en este enlace:
 - **Tailwind CSS**
 - **v0.dev**
 - **Vercel**
+- **Supabase**
+
 
 ---
 
