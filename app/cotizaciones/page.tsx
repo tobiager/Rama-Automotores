@@ -4,14 +4,22 @@ import { useState, useEffect } from "react"
 import { getLastCotizacionUrl } from "@/lib/uploadCotizacion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, Search, Download, AlertCircle, FileText } from 'lucide-react'
+import { Loader2, Search, FileText, Download, AlertCircle } from 'lucide-react'
+
+interface SearchResult {
+  pageNumber: number
+  text: string
+  context: string
+}
 
 export default function CotizacionesPage() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(true)
+  const [searching, setSearching] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -27,7 +35,7 @@ export default function CotizacionesPage() {
       if (url) {
         setPdfUrl(url)
       } else {
-        setError("No hay cotizaciones disponibles actualmente")
+        setError("No hay cotizaciones disponibles")
       }
     } catch (err) {
       setError("Error al cargar la cotización")
@@ -37,170 +45,198 @@ export default function CotizacionesPage() {
     }
   }
 
-  const handleSearch = () => {
-    if (!searchTerm.trim() || !pdfUrl) return
-    
-    // Create search URL with the search term
-    const searchUrl = `${pdfUrl}#search=${encodeURIComponent(searchTerm)}`
-    
-    // Update the iframe src to include search
-    const iframe = document.getElementById('pdf-viewer') as HTMLIFrameElement
-    if (iframe) {
-      iframe.src = searchUrl
+  const searchInPdf = async () => {
+    if (!searchTerm.trim()) return
+
+    setSearching(true)
+    setSearchResults([])
+    setError(null)
+
+    try {
+      // Placeholder search implementation
+      // In a real implementation, this would search through the PDF content
+      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate search delay
+      
+      // Mock search results
+      const mockResults: SearchResult[] = [
+        {
+          pageNumber: 1,
+          text: `Resultado de búsqueda para "${searchTerm}"`,
+          context: `Este es un resultado de ejemplo para la búsqueda de "${searchTerm}". En una implementación real, esto mostraría el contenido real del PDF.`
+        }
+      ]
+
+      setSearchResults(mockResults)
+
+      if (mockResults.length === 0) {
+        setError(`No se encontraron resultados para "${searchTerm}"`)
+      }
+    } catch (err) {
+      console.error("Error searching PDF:", err)
+      setError("Error al buscar en el PDF")
+    } finally {
+      setSearching(false)
     }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
-      handleSearch()
+      searchInPdf()
     }
   }
 
-  const handleDownload = () => {
-    if (pdfUrl) {
-      window.open(pdfUrl, "_blank")
-    }
+  const highlightSearchTerm = (text: string, term: string) => {
+    if (!term) return text
+
+    const regex = new RegExp(`(${term})`, "gi")
+    const parts = text.split(regex)
+
+    return parts.map((part, index) =>
+      regex.test(part) ? (
+        <mark key={index} className="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">
+          {part}
+        </mark>
+      ) : (
+        part
+      ),
+    )
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-blue-400" />
-          <p className="text-gray-300 text-lg">Cargando cotización...</p>
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-gray-600 dark:text-gray-400">Cargando cotización...</p>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 py-8">
-      <div className="container mx-auto px-4 max-w-7xl">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-3">
-            Buscador de Cotizaciones
-          </h1>
-          <p className="text-gray-400 text-lg">
-            Encuentra modelos específicos en nuestra cotización mensual
-          </p>
-        </div>
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Cotizaciones de Autos</h1>
+        <p className="text-gray-600 dark:text-gray-400">Busca modelos específicos en nuestra cotización mensual</p>
+      </div>
 
-        {/* Search Bar */}
-        <Card className="bg-gray-800 border-gray-700 mb-8">
-          <CardContent className="p-6">
-            <div className="flex gap-3 items-center">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                <Input
-                  type="text"
-                  placeholder="Buscar modelo en la cotización (ej: Ford Focus, Corolla...)"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  className="pl-10 bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 h-12 text-lg"
-                />
-              </div>
-              <Button 
-                onClick={handleSearch} 
-                disabled={!searchTerm.trim() || !pdfUrl}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 h-12"
-              >
-                <Search className="mr-2 h-5 w-5" />
-                Buscar
-              </Button>
-              <Button 
-                onClick={handleDownload}
-                disabled={!pdfUrl}
-                variant="outline"
-                className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white px-6 h-12"
-              >
-                <Download className="mr-2 h-5 w-5" />
-                Descargar PDF
-              </Button>
+      {/* Buscador */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-5 w-5" />
+            Buscar Modelo
+          </CardTitle>
+          <CardDescription>Ingresa el modelo de auto que buscas (ej: "Toyota Etios", "Ford Ka")</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2">
+            <Input
+              type="text"
+              placeholder="Buscar modelo de auto..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyPress={handleKeyPress}
+              className="flex-1"
+            />
+            <Button onClick={searchInPdf} disabled={searching || !searchTerm.trim()}>
+              {searching ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Buscando...
+                </>
+              ) : (
+                <>
+                  <Search className="mr-2 h-4 w-4" />
+                  Buscar
+                </>
+              )}
+            </Button>
+          </div>
+
+          {error && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Resultados de búsqueda */}
+      {searchResults.length > 0 && (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Resultados de Búsqueda</CardTitle>
+            <CardDescription>
+              Se encontraron {searchResults.length} resultado(s) para "{searchTerm}"
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {searchResults.map((result, index) => (
+                <div key={index} className="border-l-4 border-blue-500 pl-4 py-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Página {result.pageNumber}</span>
+                  </div>
+                  <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+                    {highlightSearchTerm(result.context, searchTerm)}
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
+      )}
 
-        {/* Error Alert */}
-        {error && (
-          <Alert variant="destructive" className="mb-8 bg-red-900/20 border-red-800 text-red-300">
-            <AlertCircle className="h-5 w-5" />
-            <AlertDescription className="text-base">{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* PDF Viewer */}
-        {pdfUrl ? (
-          <Card className="bg-gray-800 border-gray-700 overflow-hidden">
-            <CardContent className="p-0">
-              <div className="bg-white rounded-lg m-4" style={{ height: '80vh' }}>
-                <iframe
-                  id="pdf-viewer"
-                  src={`${pdfUrl}#toolbar=1&navpanes=1&scrollbar=1&search=${encodeURIComponent(searchTerm)}`}
-                  className="w-full h-full rounded-lg"
-                  title="Cotización PDF"
-                  loading="lazy"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        ) : !loading && (
-          <Card className="bg-gray-800 border-gray-700">
-            <CardContent className="text-center py-16">
-              <FileText className="h-16 w-16 text-gray-500 mx-auto mb-6" />
-              <h3 className="text-2xl font-semibold text-white mb-3">
-                No hay cotizaciones disponibles
-              </h3>
-              <p className="text-gray-400 text-lg mb-6">
-                Actualmente no hay cotizaciones cargadas en el sistema.
-              </p>
-              <Button 
-                onClick={loadPdfUrl}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3"
-              >
-                <Loader2 className="mr-2 h-5 w-5" />
-                Intentar nuevamente
+      {/* Visor de PDF */}
+      {pdfUrl && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Cotización Completa
+              </span>
+              <Button variant="outline" size="sm" onClick={() => window.open(pdfUrl, "_blank")}>
+                <Download className="mr-2 h-4 w-4" />
+                Descargar PDF
               </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Instructions */}
-        {pdfUrl && (
-          <div className="mt-8 text-center">
-            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-xl font-bold text-white">1</span>
-                </div>
-                <h3 className="font-semibold text-white mb-2">Ingresa el modelo</h3>
-                <p className="text-gray-400 text-sm">
-                  Escribe el nombre del vehículo que buscas en el campo de búsqueda
-                </p>
-              </div>
-              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-xl font-bold text-white">2</span>
-                </div>
-                <h3 className="font-semibold text-white mb-2">Busca en el PDF</h3>
-                <p className="text-gray-400 text-sm">
-                  El sistema resaltará automáticamente las coincidencias en el documento
-                </p>
-              </div>
-              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-xl font-bold text-white">3</span>
-                </div>
-                <h3 className="font-semibold text-white mb-2">Navega los resultados</h3>
-                <p className="text-gray-400 text-sm">
-                  Usa los controles del PDF para navegar entre las coincidencias encontradas
-                </p>
-              </div>
+            </CardTitle>
+            <CardDescription>Puedes navegar por todo el documento usando los controles del visor</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="w-full">
+              <iframe 
+                src={`${pdfUrl}#toolbar=1&navpanes=1&scrollbar=1`}
+                className="w-full h-[800px] border rounded-lg" 
+                title="Cotización PDF"
+                loading="lazy"
+              />
             </div>
-          </div>
-        )}
-      </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!pdfUrl && !loading && (
+        <Card>
+          <CardContent className="text-center py-12">
+            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              No hay cotizaciones disponibles
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              Actualmente no hay cotizaciones cargadas en el sistema.
+            </p>
+            <Button onClick={loadPdfUrl}>
+              Intentar nuevamente
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

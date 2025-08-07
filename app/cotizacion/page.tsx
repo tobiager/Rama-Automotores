@@ -1,193 +1,66 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { getLastCotizacionUrl } from '@/lib/uploadCotizacion'
-import { Search, Download, FileText, AlertCircle, RefreshCw, Loader2, ExternalLink, Calendar, ChevronUp, ChevronDown } from 'lucide-react'
-
-interface CotizacionData {
-  url: string
-  fecha_subida: string
-  mes?: number
-  anio?: number
-  nombre_archivo?: string
-}
-
-interface SearchResult {
-  pageNumber: number
-  text: string
-  context: string
-}
-
-interface SearchResponse {
-  results: SearchResult[]
-  totalResults: number
-  message?: string
-}
+import { getCotizaciones, getCotizacionByPeriod, type Cotizacion } from '@/lib/cotizaciones'
+import { FileText, Download, Calendar, AlertCircle, Info, ExternalLink } from 'lucide-react'
 
 export default function CotizacionPage() {
-  const [cotizacionData, setCotizacionData] = useState<CotizacionData | null>(null)
+  const [cotizaciones, setCotizaciones] = useState<Cotizacion[]>([])
+  const [selectedCotizacion, setSelectedCotizacion] = useState<Cotizacion | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searching, setSearching] = useState(false)
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
-  const [currentResultIndex, setCurrentResultIndex] = useState(0)
-  const [totalResults, setTotalResults] = useState(0)
-  const [searchError, setSearchError] = useState<string | null>(null)
-  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const [error, setError] = useState('')
+  const [selectedMes, setSelectedMes] = useState('')
+  const [selectedAnio, setSelectedAnio] = useState('')
 
   useEffect(() => {
-    loadLatestCotizacion()
+    loadCotizaciones()
   }, [])
 
-  const loadLatestCotizacion = async () => {
+  const loadCotizaciones = async () => {
     try {
       setLoading(true)
-      setError(null)
+      const data = await getCotizaciones()
+      setCotizaciones(data)
       
-      const result = await getLastCotizacionUrl()
-      
-      if (result && result.url) {
-        setCotizacionData(result)
-      } else {
-        setError('No hay cotizaciones disponibles actualmente')
-        setCotizacionData(null)
+      // Auto-select the most recent cotizacion
+      if (data.length > 0) {
+        setSelectedCotizacion(data[0])
       }
-    } catch (err) {
-      console.error('Error loading cotizacion:', err)
-      setError('Error al cargar la cotización. Por favor, intenta nuevamente.')
-      setCotizacionData(null)
+    } catch (error) {
+      console.error('Error loading cotizaciones:', error)
+      setError('Error al cargar las cotizaciones')
     } finally {
       setLoading(false)
     }
   }
 
-  const performSearch = async (query: string) => {
-    if (!query.trim() || !cotizacionData?.url) return
-
-    setSearching(true)
-    setSearchError(null)
-    setSearchResults([])
-    setCurrentResultIndex(0)
-    setTotalResults(0)
+  const handlePeriodSearch = async () => {
+    if (!selectedMes || !selectedAnio) {
+      setError('Por favor selecciona mes y año')
+      return
+    }
 
     try {
-      const response = await fetch('/api/search-pdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: query.trim(),
-          pdfUrl: cotizacionData.url
-        }),
-      })
-
-      const data: SearchResponse = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Error en la búsqueda')
-      }
-
-      if (data.results && data.results.length > 0) {
-        setSearchResults(data.results)
-        setTotalResults(data.totalResults || data.results.length)
-        setCurrentResultIndex(0)
-        
-        // Navigate to first result
-        navigateToResult(data.results[0])
+      setLoading(true)
+      setError('')
+      const cotizacion = await getCotizacionByPeriod(parseInt(selectedMes), parseInt(selectedAnio))
+      
+      if (cotizacion) {
+        setSelectedCotizacion(cotizacion)
       } else {
-        setSearchError(`No se encontraron coincidencias para "${query}"`)
+        setError(`No se encontró cotización para ${getMonthName(parseInt(selectedMes))} ${selectedAnio}`)
+        setSelectedCotizacion(null)
       }
-
-    } catch (err) {
-      console.error('Search error:', err)
-      setSearchError(err instanceof Error ? err.message : 'Error al realizar la búsqueda')
+    } catch (error) {
+      console.error('Error searching cotizacion:', error)
+      setError('Error al buscar la cotización')
     } finally {
-      setSearching(false)
-    }
-  }
-
-  const navigateToResult = (result: SearchResult) => {
-    if (iframeRef.current) {
-      // Update iframe URL to navigate to specific page with search highlighting
-      const searchUrl = `${cotizacionData?.url}#page=${result.pageNumber}&search=${encodeURIComponent(searchQuery)}&phrase=true`
-      iframeRef.current.src = searchUrl
-    }
-  }
-
-  const handleSearch = async () => {
-    await performSearch(searchQuery)
-  }
-
-  const handleSearchKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !searching) {
-      handleSearch()
-    }
-  }
-
-  const handleNextResult = () => {
-    if (searchResults.length > 0) {
-      const nextIndex = (currentResultIndex + 1) % searchResults.length
-      setCurrentResultIndex(nextIndex)
-      navigateToResult(searchResults[nextIndex])
-    }
-  }
-
-  const handlePreviousResult = () => {
-    if (searchResults.length > 0) {
-      const prevIndex = currentResultIndex === 0 ? searchResults.length - 1 : currentResultIndex - 1
-      setCurrentResultIndex(prevIndex)
-      navigateToResult(searchResults[prevIndex])
-    }
-  }
-
-  const clearSearch = () => {
-    setSearchQuery('')
-    setSearchResults([])
-    setCurrentResultIndex(0)
-    setTotalResults(0)
-    setSearchError(null)
-    
-    // Reset iframe to original URL
-    if (iframeRef.current && cotizacionData?.url) {
-      iframeRef.current.src = `${cotizacionData.url}#toolbar=1&navpanes=1&scrollbar=1&page=1&view=FitH`
-    }
-  }
-
-  const handleDownload = () => {
-    if (cotizacionData?.url) {
-      const link = document.createElement('a')
-      link.href = cotizacionData.url
-      link.download = cotizacionData.nombre_archivo || 'cotizacion.pdf'
-      link.click()
-    }
-  }
-
-  const handleOpenInNewTab = () => {
-    if (cotizacionData?.url) {
-      window.open(cotizacionData.url, '_blank')
-    }
-  }
-
-  const handleRetry = () => {
-    loadLatestCotizacion()
-  }
-
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString('es-ES', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      })
-    } catch {
-      return 'Fecha no disponible'
+      setLoading(false)
     }
   }
 
@@ -199,19 +72,28 @@ export default function CotizacionPage() {
     return months[month - 1] || 'Mes inválido'
   }
 
-  if (loading) {
+  const getAvailableYears = () => {
+    const years = new Set<number>()
+    cotizaciones.forEach(c => years.add(c.anio))
+    return Array.from(years).sort((a, b) => b - a)
+  }
+
+  const getAvailableMonths = (year: number) => {
+    const months = new Set<number>()
+    cotizaciones
+      .filter(c => c.anio === year)
+      .forEach(c => months.add(c.mes))
+    return Array.from(months).sort((a, b) => a - b)
+  }
+
+  if (loading && cotizaciones.length === 0) {
     return (
       <div className="min-h-screen bg-gray-900 py-20">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <div className="text-center">
-              <Loader2 className="h-12 w-12 animate-spin text-blue-500 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-white mb-2">
-                Cargando cotización más reciente...
-              </h2>
-              <p className="text-gray-400">
-                Obteniendo la información desde la base de datos
-              </p>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p className="text-gray-400">Cargando cotizaciones...</p>
             </div>
           </div>
         </div>
@@ -224,317 +106,252 @@ export default function CotizacionPage() {
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-12">
             <h1 className="text-4xl font-bold text-white mb-4">
-              Buscador de Cotizaciones
+              Cotizaciones Mensuales
             </h1>
             <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              Busca modelos específicos en la cotización oficial más reciente
+              Consulta las cotizaciones oficiales de vehículos actualizadas mensualmente
             </p>
           </div>
 
-          {/* Error State */}
-          {error && (
-            <div className="mb-8">
-              <Alert variant="destructive" className="bg-red-900/20 border-red-800 max-w-2xl mx-auto">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-red-300">
-                  <div className="flex items-center justify-between">
-                    <span>{error}</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleRetry}
-                      className="ml-4 border-red-600 text-red-300 hover:bg-red-800"
-                      disabled={loading}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Sidebar */}
+            <div className="lg:col-span-1 space-y-6">
+              {/* Period Search */}
+              <Card className="bg-gray-800 border-gray-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Buscar por Período
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Año
+                    </label>
+                    <Select value={selectedAnio} onValueChange={setSelectedAnio}>
+                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                        <SelectValue placeholder="Selecciona el año" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-700 border-gray-600">
+                        {getAvailableYears().map((year) => (
+                          <SelectItem key={year} value={year.toString()} className="text-white">
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Mes
+                    </label>
+                    <Select 
+                      value={selectedMes} 
+                      onValueChange={setSelectedMes}
+                      disabled={!selectedAnio}
                     >
-                      <RefreshCw className={`h-3 w-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
-                      Reintentar
-                    </Button>
+                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                        <SelectValue placeholder="Selecciona el mes" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-700 border-gray-600">
+                        {selectedAnio && getAvailableMonths(parseInt(selectedAnio)).map((mes) => (
+                          <SelectItem key={mes} value={mes.toString()} className="text-white">
+                            {getMonthName(mes)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                </AlertDescription>
-              </Alert>
-            </div>
-          )}
 
-          {/* Cotization Info */}
-          {cotizacionData && (
-            <div className="mb-6">
-              <Card className="bg-gray-800 border-gray-700 max-w-4xl mx-auto">
-                <CardContent className="py-4">
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-900/30 rounded-lg">
-                        <FileText className="h-5 w-5 text-blue-400" />
-                      </div>
-                      <div>
-                        <h3 className="text-white font-semibold">
-                          {cotizacionData.mes && cotizacionData.anio 
-                            ? `Cotización ${getMonthName(cotizacionData.mes)} ${cotizacionData.anio}`
-                            : 'Cotización Oficial'
-                          }
-                        </h3>
-                        <div className="flex items-center gap-2 text-sm text-gray-400">
-                          <Calendar className="h-3 w-3" />
-                          <span>Subida el {formatDate(cotizacionData.fecha_subida)}</span>
+                  <Button 
+                    onClick={handlePeriodSearch}
+                    disabled={!selectedMes || !selectedAnio || loading}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    Buscar Cotización
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Available Cotizaciones */}
+              <Card className="bg-gray-800 border-gray-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Cotizaciones Disponibles
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {cotizaciones.map((cotizacion) => (
+                      <button
+                        key={cotizacion.id}
+                        onClick={() => setSelectedCotizacion(cotizacion)}
+                        className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                          selectedCotizacion?.id === cotizacion.id
+                            ? 'bg-blue-600 border-blue-500 text-white'
+                            : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                        }`}
+                      >
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-medium">
+                              {getMonthName(cotizacion.mes)} {cotizacion.anio}
+                            </p>
+                            <p className="text-sm opacity-75">
+                              {new Date(cotizacion.fecha_subida).toLocaleDateString('es-ES')}
+                            </p>
+                          </div>
+                          <Badge variant={
+                            cotizacion.estado === 'completado' ? 'default' : 
+                            cotizacion.estado === 'error' ? 'destructive' : 'secondary'
+                          }>
+                            {cotizacion.estado}
+                          </Badge>
                         </div>
-                      </div>
-                    </div>
-                    <Badge variant="default" className="bg-green-600 text-white">
-                      Disponible
-                    </Badge>
+                      </button>
+                    ))}
                   </div>
+                  
+                  {cotizaciones.length === 0 && (
+                    <div className="text-center py-8">
+                      <FileText className="h-12 w-12 mx-auto text-gray-600 mb-4" />
+                      <p className="text-gray-400">No hay cotizaciones disponibles</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
-          )}
 
-          {/* Search Interface */}
-          {cotizacionData && (
-            <>
-              <div className="mb-8">
-                <Card className="bg-gray-800 border-gray-700 max-w-4xl mx-auto">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-white text-center">
-                      Buscar Modelo de Vehículo
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-col sm:flex-row gap-3 mb-4">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                        <Input
-                          type="text"
-                          placeholder="Buscar modelo en la cotización (ej: Ford Focus, Corolla...)"
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          onKeyPress={handleSearchKeyPress}
-                          className="pl-10 h-12 bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                          disabled={searching}
-                        />
+            {/* Main Content */}
+            <div className="lg:col-span-2">
+              {error && (
+                <Alert variant="destructive" className="mb-6 bg-red-900/20 border-red-800">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="text-red-300">{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {selectedCotizacion ? (
+                <Card className="bg-gray-800 border-gray-700">
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-white text-2xl">
+                          Cotización {getMonthName(selectedCotizacion.mes)} {selectedCotizacion.anio}
+                        </CardTitle>
+                        <CardDescription className="text-gray-400 mt-2">
+                          Subida el {new Date(selectedCotizacion.fecha_subida).toLocaleDateString('es-ES')}
+                        </CardDescription>
                       </div>
                       <div className="flex gap-2">
-                        <Button 
-                          onClick={handleSearch} 
-                          disabled={searching || !searchQuery.trim()}
-                          className="h-12 px-4 sm:px-6 bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                        <Button
+                          variant="outline"
+                          onClick={() => window.open(selectedCotizacion.url, '_blank')}
+                          className="border-gray-600 text-gray-300 hover:bg-gray-700"
                         >
-                          {searching ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              <span className="hidden sm:inline">Buscando...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Search className="mr-2 h-4 w-4" />
-                              <span className="hidden sm:inline">Buscar</span>
-                            </>
-                          )}
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Abrir en Nueva Pestaña
                         </Button>
                         <Button
-                          onClick={handleDownload}
-                          variant="outline"
-                          className="h-12 px-4 sm:px-6 border-gray-600 text-gray-300 hover:bg-gray-700"
+                          onClick={() => {
+                            const link = document.createElement('a')
+                            link.href = selectedCotizacion.url
+                            link.download = selectedCotizacion.nombre_archivo
+                            link.click()
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700"
                         >
-                          <Download className="mr-2 h-4 w-4" />
-                          <span className="hidden sm:inline">Descargar</span>
+                          <Download className="h-4 w-4 mr-2" />
+                          Descargar PDF
                         </Button>
                       </div>
                     </div>
-
-                    {/* Search Results Navigation */}
-                    {searchResults.length > 0 && (
-                      <div className="mb-4 p-3 bg-green-900/20 border border-green-800 rounded-lg">
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="default" className="bg-green-600 text-white">
-                              {totalResults} resultado{totalResults !== 1 ? 's' : ''} encontrado{totalResults !== 1 ? 's' : ''}
-                            </Badge>
-                            {totalResults > 1 && (
-                              <span className="text-sm text-gray-300">
-                                Mostrando {currentResultIndex + 1} de {totalResults}
-                              </span>
-                            )}
-                          </div>
-                          {totalResults > 1 && (
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handlePreviousResult}
-                                className="border-green-600 text-green-300 hover:bg-green-800"
-                              >
-                                <ChevronUp className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleNextResult}
-                                className="border-green-600 text-green-300 hover:bg-green-800"
-                              >
-                                <ChevronDown className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={clearSearch}
-                            className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                          >
-                            Limpiar búsqueda
-                          </Button>
-                        </div>
-                        {searchResults[currentResultIndex] && (
-                          <div className="mt-2 text-sm text-gray-300">
-                            <strong>Página {searchResults[currentResultIndex].pageNumber}:</strong> {searchResults[currentResultIndex].context}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Search Error */}
-                    {searchError && (
-                      <div className="mb-4">
-                        <Alert variant="destructive" className="bg-red-900/20 border-red-800">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription className="text-red-300">
-                            {searchError}
+                  </CardHeader>
+                  <CardContent>
+                    {/* PDF Viewer */}
+                    <div className="relative">
+                      <div className="bg-gray-900 rounded-lg p-4 mb-4">
+                        <Alert className="bg-blue-900/20 border-blue-800 mb-4">
+                          <Info className="h-4 w-4 text-blue-400" />
+                          <AlertDescription className="text-blue-300">
+                            <strong>Consejos para visualizar el PDF:</strong>
+                            <ul className="mt-2 space-y-1 text-sm">
+                              <li>• Usa los controles del visor para hacer zoom</li>
+                              <li>• Puedes descargar el archivo para mejor visualización</li>
+                              <li>• En móviles, es recomendable abrir en nueva pestaña</li>
+                            </ul>
                           </AlertDescription>
                         </Alert>
-                      </div>
-                    )}
-
-                    {/* Instructions */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                      <div className="flex items-center gap-2 text-gray-400">
-                        <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                          1
+                        
+                        <div className="bg-white rounded-lg overflow-hidden" style={{ height: '800px' }}>
+                          <iframe
+                            src={`${selectedCotizacion.url}#toolbar=1&navpanes=1&scrollbar=1&page=1&view=FitH`}
+                            width="100%"
+                            height="100%"
+                            style={{ border: 'none' }}
+                            title={`Cotización ${getMonthName(selectedCotizacion.mes)} ${selectedCotizacion.anio}`}
+                          />
                         </div>
-                        <span>Escribe el modelo que buscas</span>
                       </div>
-                      <div className="flex items-center gap-2 text-gray-400">
-                        <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                          2
-                        </div>
-                        <span>Presiona Enter o haz clic en Buscar</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-400">
-                        <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                          3
-                        </div>
-                        <span>Navega entre resultados con las flechas</span>
+                      
+                      {/* Alternative download options */}
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(selectedCotizacion.url, '_blank')}
+                          className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                        >
+                          Ver en Pantalla Completa
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const link = document.createElement('a')
+                            link.href = selectedCotizacion.url
+                            link.download = selectedCotizacion.nombre_archivo
+                            link.click()
+                          }}
+                          className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                        >
+                          Descargar Archivo
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-              </div>
-
-              {/* PDF Viewer */}
-              <div className="mb-8">
+              ) : (
                 <Card className="bg-gray-800 border-gray-700">
-                  <CardHeader className="pb-4">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div>
-                        <CardTitle className="text-white flex items-center gap-2">
-                          <FileText className="h-5 w-5" />
-                          Cotización Oficial
-                          {searchQuery && searchResults.length > 0 && (
-                            <span className="text-sm font-normal text-green-400 ml-2">
-                              - "{searchQuery}" ({totalResults} resultado{totalResults !== 1 ? 's' : ''})
-                            </span>
-                          )}
-                        </CardTitle>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleOpenInNewTab}
-                          className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                        >
-                          <ExternalLink className="h-3 w-3 mr-1" />
-                          <span className="hidden sm:inline">Abrir en Nueva Pestaña</span>
-                          <span className="sm:hidden">Abrir</span>
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="bg-white rounded-lg overflow-hidden" style={{ height: '80vh' }}>
-                      <iframe
-                        ref={iframeRef}
-                        src={`${cotizacionData.url}#toolbar=1&navpanes=1&scrollbar=1&page=1&view=FitH`}
-                        width="100%"
-                        height="100%"
-                        style={{ border: 'none' }}
-                        title="Cotización Oficial de Vehículos"
-                        className="rounded-lg"
-                      />
-                    </div>
-                    
-                    {/* PDF Controls */}
-                    <div className="flex flex-wrap justify-center gap-2 mt-4">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleOpenInNewTab}
-                        className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                      >
-                        <ExternalLink className="h-3 w-3 mr-1" />
-                        Ver en Pantalla Completa
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleDownload}
-                        className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                      >
-                        <Download className="h-3 w-3 mr-1" />
-                        Descargar Archivo
-                      </Button>
-                      {searchResults.length > 0 && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={clearSearch}
-                          className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                        >
-                          Limpiar Búsqueda
-                        </Button>
+                  <CardContent className="py-16">
+                    <div className="text-center">
+                      <FileText className="h-16 w-16 mx-auto text-gray-600 mb-6" />
+                      <h3 className="text-xl font-semibold text-white mb-2">
+                        Selecciona una Cotización
+                      </h3>
+                      <p className="text-gray-400 mb-6">
+                        Elige una cotización de la lista o busca por período específico
+                      </p>
+                      {cotizaciones.length === 0 && (
+                        <Alert className="bg-yellow-900/20 border-yellow-800 max-w-md mx-auto">
+                          <AlertCircle className="h-4 w-4 text-yellow-400" />
+                          <AlertDescription className="text-yellow-300">
+                            No hay cotizaciones disponibles en este momento. 
+                            Por favor, vuelve a intentar más tarde.
+                          </AlertDescription>
+                        </Alert>
                       )}
                     </div>
                   </CardContent>
                 </Card>
-              </div>
-            </>
-          )}
-
-          {/* No PDF Available State */}
-          {!cotizacionData && !loading && (
-            <div className="text-center py-16">
-              <Card className="bg-gray-800 border-gray-700 max-w-2xl mx-auto">
-                <CardContent className="py-16">
-                  <FileText className="h-16 w-16 mx-auto text-gray-600 mb-6" />
-                  <h3 className="text-xl font-semibold text-white mb-2">
-                    No hay cotizaciones disponibles
-                  </h3>
-                  <p className="text-gray-400 mb-6">
-                    Actualmente no hay ninguna cotización completada en el sistema. 
-                    Por favor, contacta al administrador o intenta nuevamente más tarde.
-                  </p>
-                  <Button
-                    onClick={handleRetry}
-                    className="bg-blue-600 hover:bg-blue-700"
-                    disabled={loading}
-                  >
-                    <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                    Reintentar
-                  </Button>
-                </CardContent>
-              </Card>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
