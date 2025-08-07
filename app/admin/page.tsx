@@ -17,6 +17,7 @@ import {
   type Car,
   type AdminUser,
   type Contact,
+  supabase,
 } from "../../lib/supabase"
 
 export default function AdminPage() {
@@ -29,7 +30,8 @@ export default function AdminPage() {
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(false)
   const [loginError, setLoginError] = useState("")
-  const [activeTab, setActiveTab] = useState<"cars" | "messages">("cars")
+  const [activeTab, setActiveTab] = useState<"cars" | "messages" | "cotizaciones">("cars")
+  const [lastCotizacionDate, setLastCotizacionDate] = useState<string | null>(null)
 
   const [filterStatus, setFilterStatus] = useState<"active" | "sold" | "deleted">("active")
 
@@ -56,6 +58,8 @@ export default function AdminPage() {
         loadCars()
       } else if (activeTab === "messages") {
         loadContacts()
+      } else if (activeTab === "cotizaciones") {
+        fetchCotizacionInfo()
       }
     }
   }, [currentUser, activeTab])
@@ -83,6 +87,15 @@ export default function AdminPage() {
       alert("Error al cargar los mensajes de contacto")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchCotizacionInfo = async () => {
+    const { data } = await supabase.storage.from("cotizaciones-pdf").list("", { limit: 1 })
+    if (data && data.length > 0) {
+      setLastCotizacionDate(
+        new Date(data[0].updated_at || data[0].created_at).toLocaleString(),
+      )
     }
   }
 
@@ -125,6 +138,25 @@ export default function AdminPage() {
     setAllCars([])
     setContacts([])
     resetForm()
+  }
+
+  const handleCotizacionUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setLoading(true)
+    try {
+      const { error } = await supabase.storage
+        .from("cotizaciones-pdf")
+        .upload("cotizacion-actual.pdf", file, { upsert: true })
+      if (error) throw error
+      setLastCotizacionDate(new Date().toLocaleString())
+      alert("PDF subido correctamente")
+    } catch (error) {
+      console.error("Error uploading PDF:", error)
+      alert("Error al subir el PDF")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleAddCar = async (e: React.FormEvent) => {
@@ -445,6 +477,19 @@ export default function AdminPage() {
             }`}
           >
             Mensajes de Contacto
+          </Button>
+          <Button
+            onClick={() => {
+              setActiveTab("cotizaciones")
+              setShowAddForm(false)
+            }}
+            className={`px-4 py-2 rounded-lg font-medium ${
+              activeTab === "cotizaciones"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+            }`}
+          >
+            Cotizaciones
           </Button>
         </div>
 
@@ -862,6 +907,24 @@ export default function AdminPage() {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {activeTab === "cotizaciones" && (
+          <div className="bg-gray-800 p-6 rounded-lg">
+            <h2 className="text-xl font-bold mb-4">Cotizaciones</h2>
+            <input
+              type="file"
+              accept="application/pdf"
+              onChange={handleCotizacionUpload}
+              className="mb-4"
+              disabled={loading}
+            />
+            {lastCotizacionDate && (
+              <p className="text-sm text-gray-400">
+                Última subida: {lastCotizacionDate}
+              </p>
+            )}
           </div>
         )}
       </div>
