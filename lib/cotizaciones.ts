@@ -20,6 +20,7 @@ export interface ModeloAuto {
   descripcion?: string
 }
 
+// Función principal para obtener cotizaciones
 export async function getCotizaciones(): Promise<Cotizacion[]> {
   try {
     const { data, error } = await supabase
@@ -40,10 +41,10 @@ export async function getCotizaciones(): Promise<Cotizacion[]> {
   }
 }
 
-export async function getAllCotizaciones(): Promise<Cotizacion[]> {
-  return getCotizaciones()
-}
+// Alias para getAllCotizaciones (requerido por deployment)
+export const getAllCotizaciones = getCotizaciones
 
+// Función para obtener cotización por período
 export async function getCotizacionByPeriod(mes: number, anio: number): Promise<Cotizacion | null> {
   try {
     const { data, error } = await supabase
@@ -55,7 +56,7 @@ export async function getCotizacionByPeriod(mes: number, anio: number): Promise<
 
     if (error) {
       if (error.code === 'PGRST116') {
-        // No rows returned
+        // No se encontró la cotización
         return null
       }
       console.error('Error fetching cotizacion by period:', error)
@@ -69,6 +70,7 @@ export async function getCotizacionByPeriod(mes: number, anio: number): Promise<
   }
 }
 
+// Función para obtener la cotización más reciente
 export async function getLatestCotizacion(): Promise<Cotizacion | null> {
   try {
     const { data, error } = await supabase
@@ -81,7 +83,7 @@ export async function getLatestCotizacion(): Promise<Cotizacion | null> {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        // No rows found
+        // No se encontró ninguna cotización
         return null
       }
       console.error('Error fetching latest cotizacion:', error)
@@ -95,53 +97,58 @@ export async function getLatestCotizacion(): Promise<Cotizacion | null> {
   }
 }
 
+// Función para subir nueva cotización
 export async function uploadCotizacionPDF(
   file: File,
   mes: number,
   anio: number
 ): Promise<{ success: boolean; message: string; data?: Cotizacion }> {
   try {
-    // Validate file
-    if (!file || file.type !== 'application/pdf') {
-      return { success: false, message: 'El archivo debe ser un PDF válido' }
+    // Validar archivo
+    const validation = validatePDFFile(file)
+    if (!validation.valid) {
+      return { success: false, message: validation.error || 'Archivo inválido' }
     }
 
-    if (file.size > 10 * 1024 * 1024) { // 10MB limit
-      return { success: false, message: 'El archivo no puede ser mayor a 10MB' }
+    // Verificar si ya existe una cotización para este período
+    const existing = await getCotizacionByPeriod(mes, anio)
+    if (existing) {
+      return {
+        success: false,
+        message: `Ya existe una cotización para ${getMonthName(mes)} ${anio}. Use la función de reemplazar.`
+      }
     }
 
-    // Check if cotizacion already exists for this period
-    const existingCotizacion = await getCotizacionByPeriod(mes, anio)
-    if (existingCotizacion) {
-      return { success: false, message: `Ya existe una cotización para ${mes}/${anio}. Use la función de reemplazar.` }
-    }
-
-    // Generate filename
-    const fileName = `${anio}-${mes.toString().padStart(2, '0')}-cotizacion.pdf`
-
-    // Upload to Supabase Storage
+    // Generar nombre único para el archivo
+    const timestamp = Date.now()
+    const fileName = `cotizacion-${anio}-${mes.toString().padStart(2, '0')}-${timestamp}.pdf`
+    
+    // Subir archivo a Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('cotizaciones')
       .upload(fileName, file, {
-        upsert: true,
-        contentType: 'application/pdf'
+        contentType: 'application/pdf',
+        upsert: false
       })
 
     if (uploadError) {
-      console.error('Upload error:', uploadError)
-      return { success: false, message: 'Error al subir el archivo' }
+      console.error('Error uploading PDF:', uploadError)
+      return {
+        success: false,
+        message: 'Error al subir el archivo PDF'
+      }
     }
 
-    // Get public URL
+    // Obtener URL pública del archivo
     const { data: urlData } = supabase.storage
       .from('cotizaciones')
       .getPublicUrl(fileName)
 
-    // Process PDF content (placeholder for future implementation)
+    // Procesar contenido del PDF (placeholder)
     const pdfContent = await processPDFContent(file)
 
-    // Save to database
-    const { data: dbData, error: dbError } = await supabase
+    // Crear registro en la base de datos
+    const { data: cotizacionData, error: dbError } = await supabase
       .from('cotizaciones')
       .insert({
         mes,
@@ -156,23 +163,34 @@ export async function uploadCotizacionPDF(
       .single()
 
     if (dbError) {
-      console.error('Database error:', dbError)
-      // Clean up uploaded file if database insert fails
-      await supabase.storage.from('cotizaciones').remove([fileName])
-      return { success: false, message: 'Error al guardar en la base de datos' }
+      console.error('Error creating cotizacion record:', dbError)
+      
+      // Limpiar archivo subido si falla la inserción en BD
+      await supabase.storage
+        .from('cotizaciones')
+        .remove([fileName])
+
+      return {
+        success: false,
+        message: 'Error al crear el registro de cotización'
+      }
     }
 
     return {
       success: true,
       message: 'Cotización subida exitosamente',
-      data: dbData
+      data: cotizacionData
     }
   } catch (error) {
     console.error('Error in uploadCotizacionPDF:', error)
-    return { success: false, message: 'Error inesperado al subir la cotización' }
+    return {
+      success: false,
+      message: 'Error interno del servidor'
+    }
   }
 }
 
+// Función para reemplazar cotización existente
 export async function replaceCotizacion(
   id: number,
   file: File,
@@ -180,52 +198,56 @@ export async function replaceCotizacion(
   anio: number
 ): Promise<{ success: boolean; message: string; data?: Cotizacion }> {
   try {
-    // Get existing cotizacion
-    const { data: existingCotizacion, error: fetchError } = await supabase
+    // Validar archivo
+    const validation = validatePDFFile(file)
+    if (!validation.valid) {
+      return { success: false, message: validation.error || 'Archivo inválido' }
+    }
+
+    // Buscar cotización existente
+    const { data: existing, error: fetchError } = await supabase
       .from('cotizaciones')
       .select('*')
       .eq('id', id)
       .single()
 
-    if (fetchError || !existingCotizacion) {
-      return { success: false, message: 'Cotización no encontrada' }
+    if (fetchError || !existing) {
+      return {
+        success: false,
+        message: 'Cotización no encontrada'
+      }
     }
 
-    // Delete old file from storage
-    const { error: deleteError } = await supabase.storage
-      .from('cotizaciones')
-      .remove([existingCotizacion.nombre_archivo])
-
-    if (deleteError) {
-      console.error('Error deleting old file:', deleteError)
-    }
-
-    // Generate new filename
-    const fileName = `${anio}-${mes.toString().padStart(2, '0')}-cotizacion.pdf`
-
-    // Upload new file
+    // Generar nombre único para el nuevo archivo
+    const timestamp = Date.now()
+    const fileName = `cotizacion-${anio}-${mes.toString().padStart(2, '0')}-${timestamp}.pdf`
+    
+    // Subir nuevo archivo
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('cotizaciones')
       .upload(fileName, file, {
-        upsert: true,
-        contentType: 'application/pdf'
+        contentType: 'application/pdf',
+        upsert: false
       })
 
     if (uploadError) {
-      console.error('Upload error:', uploadError)
-      return { success: false, message: 'Error al subir el nuevo archivo' }
+      console.error('Error uploading replacement PDF:', uploadError)
+      return {
+        success: false,
+        message: 'Error al subir el nuevo archivo PDF'
+      }
     }
 
-    // Get public URL
+    // Obtener URL pública del nuevo archivo
     const { data: urlData } = supabase.storage
       .from('cotizaciones')
       .getPublicUrl(fileName)
 
-    // Process PDF content
+    // Procesar contenido del PDF
     const pdfContent = await processPDFContent(file)
 
-    // Update database record
-    const { data: updateData, error: updateError } = await supabase
+    // Actualizar registro en la base de datos
+    const { data: cotizacionData, error: updateError } = await supabase
       .from('cotizaciones')
       .update({
         mes,
@@ -240,70 +262,108 @@ export async function replaceCotizacion(
       .single()
 
     if (updateError) {
-      console.error('Database update error:', updateError)
-      // Clean up uploaded file if database update fails
-      await supabase.storage.from('cotizaciones').remove([fileName])
-      return { success: false, message: 'Error al actualizar en la base de datos' }
+      console.error('Error updating cotizacion record:', updateError)
+      
+      // Limpiar nuevo archivo si falla la actualización
+      await supabase.storage
+        .from('cotizaciones')
+        .remove([fileName])
+
+      return {
+        success: false,
+        message: 'Error al actualizar el registro de cotización'
+      }
+    }
+
+    // Eliminar archivo anterior si la actualización fue exitosa
+    if (existing.nombre_archivo) {
+      try {
+        await supabase.storage
+          .from('cotizaciones')
+          .remove([existing.nombre_archivo])
+      } catch (error) {
+        console.warn('Error removing old PDF file:', error)
+        // No fallar la operación por esto
+      }
     }
 
     return {
       success: true,
       message: 'Cotización reemplazada exitosamente',
-      data: updateData
+      data: cotizacionData
     }
   } catch (error) {
     console.error('Error in replaceCotizacion:', error)
-    return { success: false, message: 'Error inesperado al reemplazar la cotización' }
+    return {
+      success: false,
+      message: 'Error interno del servidor'
+    }
   }
 }
 
+// Función para eliminar cotización
 export async function deleteCotizacion(id: number): Promise<{ success: boolean; message: string }> {
   try {
-    // Get cotizacion info
-    const { data: cotizacion, error: fetchError } = await supabase
+    // Buscar cotización existente
+    const { data: existing, error: fetchError } = await supabase
       .from('cotizaciones')
       .select('*')
       .eq('id', id)
       .single()
 
-    if (fetchError || !cotizacion) {
-      return { success: false, message: 'Cotización no encontrada' }
+    if (fetchError || !existing) {
+      return {
+        success: false,
+        message: 'Cotización no encontrada'
+      }
     }
 
-    // Delete file from storage
-    const { error: storageError } = await supabase.storage
-      .from('cotizaciones')
-      .remove([cotizacion.nombre_archivo])
-
-    if (storageError) {
-      console.error('Error deleting from storage:', storageError)
-    }
-
-    // Delete from database
-    const { error: dbError } = await supabase
+    // Eliminar registro de la base de datos
+    const { error: deleteError } = await supabase
       .from('cotizaciones')
       .delete()
       .eq('id', id)
 
-    if (dbError) {
-      console.error('Database delete error:', dbError)
-      return { success: false, message: 'Error al eliminar de la base de datos' }
+    if (deleteError) {
+      console.error('Error deleting cotizacion record:', deleteError)
+      return {
+        success: false,
+        message: 'Error al eliminar la cotización'
+      }
     }
 
-    return { success: true, message: 'Cotización eliminada exitosamente' }
+    // Eliminar archivo físico
+    if (existing.nombre_archivo) {
+      try {
+        await supabase.storage
+          .from('cotizaciones')
+          .remove([existing.nombre_archivo])
+      } catch (error) {
+        console.warn('Error removing PDF file:', error)
+        // No fallar la operación por esto
+      }
+    }
+
+    return { 
+      success: true, 
+      message: 'Cotización eliminada exitosamente' 
+    }
   } catch (error) {
     console.error('Error in deleteCotizacion:', error)
-    return { success: false, message: 'Error inesperado al eliminar la cotización' }
+    return {
+      success: false,
+      message: 'Error interno del servidor'
+    }
   }
 }
 
+// Función placeholder para búsqueda de modelos (requerida por deployment)
 export async function searchModelos(query: string): Promise<ModeloAuto[]> {
   try {
-    // This is a placeholder implementation
-    // In a real application, this would search through PDF content or a separate models table
+    // Placeholder implementation - en el futuro buscaría en contenido de PDFs
     console.log('Searching for models with query:', query)
     
-    // For now, return empty array as this feature is not yet implemented
+    // Por ahora retorna array vacío ya que no tenemos tabla de modelos
     return []
   } catch (error) {
     console.error('Error in searchModelos:', error)
@@ -311,24 +371,55 @@ export async function searchModelos(query: string): Promise<ModeloAuto[]> {
   }
 }
 
+// Función placeholder para procesar contenido PDF (requerida por deployment)
 export async function processPDFContent(file: File): Promise<{ totalModelos?: number }> {
   try {
-    // Placeholder for future PDF processing implementation
-    // This would use a PDF parsing library to extract model information
+    // Placeholder implementation - en el futuro extraería modelos del PDF
     console.log('Processing PDF content for file:', file.name)
+    console.log('File size:', file.size, 'bytes')
     
-    // For now, return undefined total_modelos
-    // In the future, this could use libraries like pdf-parse or pdf2pic
-    // to extract and count vehicle models from the PDF
-    
+    // Por ahora retorna undefined ya que no procesamos el contenido
     return { totalModelos: undefined }
   } catch (error) {
-    console.error('Error processing PDF content:', error)
+    console.error('Error in processPDFContent:', error)
     return { totalModelos: undefined }
   }
 }
 
-// Additional utility functions
+// Función utilitaria para obtener nombre del mes
+export function getMonthName(mes: number): string {
+  const months = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ]
+  return months[mes - 1] || 'Mes inválido'
+}
+
+// Función utilitaria para formatear período
+export function formatPeriod(mes: number, anio: number): string {
+  return `${getMonthName(mes)} ${anio}`
+}
+
+// Función utilitaria para validar archivo PDF
+export function validatePDFFile(file: File): { valid: boolean; error?: string } {
+  if (!file) {
+    return { valid: false, error: 'No se seleccionó ningún archivo' }
+  }
+
+  if (file.type !== 'application/pdf') {
+    return { valid: false, error: 'El archivo debe ser un PDF' }
+  }
+
+  // Límite de 10MB
+  const maxSize = 10 * 1024 * 1024
+  if (file.size > maxSize) {
+    return { valid: false, error: 'El archivo no puede ser mayor a 10MB' }
+  }
+
+  return { valid: true }
+}
+
+// Funciones adicionales para compatibilidad
 export async function getCotizacionesByYear(anio: number): Promise<Cotizacion[]> {
   try {
     const { data, error } = await supabase
@@ -367,14 +458,6 @@ export async function getCotizacionesByMonth(mes: number): Promise<Cotizacion[]>
     console.error('Error in getCotizacionesByMonth:', error)
     return []
   }
-}
-
-export function getMonthName(mes: number): string {
-  const months = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-  ]
-  return months[mes - 1] || 'Mes inválido'
 }
 
 export function formatCotizacionPeriod(cotizacion: Cotizacion): string {
