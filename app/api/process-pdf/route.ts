@@ -2,8 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { processPDFContent } from "@/lib/cotizaciones"
 import * as pdfjsLib from "pdfjs-dist"
 
-// Configurar worker de PDF.js para el servidor
-pdfjsLib.GlobalWorkerOptions.workerSrc = require.resolve("pdfjs-dist/build/pdf.worker.js")
+
 
 export async function POST(request: NextRequest) {
   try {
