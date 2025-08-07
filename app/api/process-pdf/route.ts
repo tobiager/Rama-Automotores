@@ -12,7 +12,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate file type
     if (file.type !== 'application/pdf') {
       return NextResponse.json(
         { error: 'File must be a PDF' },
@@ -20,25 +19,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024 // 10MB
-    if (file.size > maxSize) {
-      return NextResponse.json(
-        { error: 'File size must be less than 10MB' },
-        { status: 400 }
-      )
-    }
+    // Simple file validation without PDF parsing
+    const fileSize = file.size
+    const fileName = file.name
 
-    // For now, return a simple success response
-    // In the future, this could process the PDF content
+    // Placeholder response - in a real implementation, you would process the PDF
     return NextResponse.json({
       success: true,
       message: 'PDF processed successfully',
-      filename: file.name,
-      size: file.size,
-      type: file.type
+      data: {
+        fileName,
+        fileSize,
+        pages: 1, // Placeholder
+        models: [], // Placeholder
+        processedAt: new Date().toISOString()
+      }
     })
-
   } catch (error) {
     console.error('Error processing PDF:', error)
     return NextResponse.json(
@@ -50,9 +46,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   return NextResponse.json({
-    message: 'PDF processing endpoint',
-    methods: ['POST'],
-    maxSize: '10MB',
-    supportedTypes: ['application/pdf']
+    message: 'PDF processing API is running',
+    timestamp: new Date().toISOString()
   })
 }

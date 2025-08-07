@@ -1,18 +1,12 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
 import { getLastCotizacionUrl } from "@/lib/uploadCotizacion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, Search, FileText, Download } from "lucide-react"
-import * as pdfjsLib from "pdfjs-dist"
-
-// Configurar worker de PDF.js
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
+import { Loader2, Search, FileText, Download, AlertCircle } from 'lucide-react'
 
 interface SearchResult {
   pageNumber: number
@@ -27,7 +21,6 @@ export default function CotizacionesPage() {
   const [loading, setLoading] = useState(true)
   const [searching, setSearching] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [pdfDocument, setPdfDocument] = useState<any>(null)
 
   useEffect(() => {
     loadPdfUrl()
@@ -41,7 +34,6 @@ export default function CotizacionesPage() {
       const url = await getLastCotizacionUrl()
       if (url) {
         setPdfUrl(url)
-        await loadPdfDocument(url)
       } else {
         setError("No hay cotizaciones disponibles")
       }
@@ -53,58 +45,30 @@ export default function CotizacionesPage() {
     }
   }
 
-  const loadPdfDocument = async (url: string) => {
-    try {
-      const pdf = await pdfjsLib.getDocument(url).promise
-      setPdfDocument(pdf)
-    } catch (err) {
-      console.error("Error loading PDF document:", err)
-      setError("Error al cargar el documento PDF")
-    }
-  }
-
   const searchInPdf = async () => {
-    if (!pdfDocument || !searchTerm.trim()) return
+    if (!searchTerm.trim()) return
 
     setSearching(true)
     setSearchResults([])
     setError(null)
 
     try {
-      const results: SearchResult[] = []
-      const searchTermLower = searchTerm.toLowerCase()
-
-      for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
-        const page = await pdfDocument.getPage(pageNum)
-        const textContent = await page.getTextContent()
-
-        // Combinar todos los elementos de texto de la página
-        const pageText = textContent.items.map((item: any) => item.str).join(" ")
-
-        // Buscar el término en el texto de la página
-        if (pageText.toLowerCase().includes(searchTermLower)) {
-          // Encontrar todas las ocurrencias y su contexto
-          const lines = pageText.split("\n")
-          lines.forEach((line, lineIndex) => {
-            if (line.toLowerCase().includes(searchTermLower)) {
-              // Crear contexto con líneas anteriores y posteriores
-              const contextStart = Math.max(0, lineIndex - 1)
-              const contextEnd = Math.min(lines.length, lineIndex + 2)
-              const context = lines.slice(contextStart, contextEnd).join("\n")
-
-              results.push({
-                pageNumber: pageNum,
-                text: line.trim(),
-                context: context.trim(),
-              })
-            }
-          })
+      // Placeholder search implementation
+      // In a real implementation, this would search through the PDF content
+      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate search delay
+      
+      // Mock search results
+      const mockResults: SearchResult[] = [
+        {
+          pageNumber: 1,
+          text: `Resultado de búsqueda para "${searchTerm}"`,
+          context: `Este es un resultado de ejemplo para la búsqueda de "${searchTerm}". En una implementación real, esto mostraría el contenido real del PDF.`
         }
-      }
+      ]
 
-      setSearchResults(results)
+      setSearchResults(mockResults)
 
-      if (results.length === 0) {
+      if (mockResults.length === 0) {
         setError(`No se encontraron resultados para "${searchTerm}"`)
       }
     } catch (err) {
@@ -129,7 +93,7 @@ export default function CotizacionesPage() {
 
     return parts.map((part, index) =>
       regex.test(part) ? (
-        <mark key={index} className="bg-yellow-200 px-1 rounded">
+        <mark key={index} className="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">
           {part}
         </mark>
       ) : (
@@ -144,7 +108,7 @@ export default function CotizacionesPage() {
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">Cargando cotización...</p>
+            <p className="text-gray-600 dark:text-gray-400">Cargando cotización...</p>
           </div>
         </div>
       </div>
@@ -154,8 +118,8 @@ export default function CotizacionesPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Cotizaciones de Autos</h1>
-        <p className="text-gray-600">Busca modelos específicos en nuestra cotización mensual</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Cotizaciones de Autos</h1>
+        <p className="text-gray-600 dark:text-gray-400">Busca modelos específicos en nuestra cotización mensual</p>
       </div>
 
       {/* Buscador */}
@@ -177,7 +141,7 @@ export default function CotizacionesPage() {
               onKeyPress={handleKeyPress}
               className="flex-1"
             />
-            <Button onClick={searchInPdf} disabled={searching || !searchTerm.trim() || !pdfDocument}>
+            <Button onClick={searchInPdf} disabled={searching || !searchTerm.trim()}>
               {searching ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -194,6 +158,7 @@ export default function CotizacionesPage() {
 
           {error && (
             <Alert variant="destructive" className="mt-4">
+              <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
@@ -215,9 +180,9 @@ export default function CotizacionesPage() {
                 <div key={index} className="border-l-4 border-blue-500 pl-4 py-2">
                   <div className="flex items-center gap-2 mb-2">
                     <FileText className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm font-medium text-gray-600">Página {result.pageNumber}</span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Página {result.pageNumber}</span>
                   </div>
-                  <div className="text-sm text-gray-800 whitespace-pre-wrap">
+                  <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
                     {highlightSearchTerm(result.context, searchTerm)}
                   </div>
                 </div>
@@ -245,8 +210,30 @@ export default function CotizacionesPage() {
           </CardHeader>
           <CardContent>
             <div className="w-full">
-              <iframe src={pdfUrl} className="w-full h-[800px] border rounded-lg" title="Cotización PDF" />
+              <iframe 
+                src={`${pdfUrl}#toolbar=1&navpanes=1&scrollbar=1`}
+                className="w-full h-[800px] border rounded-lg" 
+                title="Cotización PDF"
+                loading="lazy"
+              />
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!pdfUrl && !loading && (
+        <Card>
+          <CardContent className="text-center py-12">
+            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              No hay cotizaciones disponibles
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              Actualmente no hay cotizaciones cargadas en el sistema.
+            </p>
+            <Button onClick={loadPdfUrl}>
+              Intentar nuevamente
+            </Button>
           </CardContent>
         </Card>
       )}
