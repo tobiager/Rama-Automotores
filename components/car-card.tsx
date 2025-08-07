@@ -1,7 +1,7 @@
 "use client"
 import Link from "next/link"
 import Image from "next/image"
-import { MessageCircle, Calendar, DollarSign, Eye } from "lucide-react"
+import { MessageCircle, Calendar, DollarSign, Eye } from 'lucide-react'
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 
@@ -36,6 +36,13 @@ export default function CarCard({ car }: CarCardProps) {
     return car.image
   }
 
+  const formatPrice = (price: number) => {
+    if (typeof price !== 'number' || isNaN(price)) {
+      return '$0'
+    }
+    return price.toLocaleString("es-AR")
+  }
+
   return (
     <div
       className={`bg-gray-800 rounded-lg overflow-hidden shadow-lg transition-all hover:shadow-2xl hover:scale-105 ${
@@ -45,7 +52,7 @@ export default function CarCard({ car }: CarCardProps) {
       <div className="relative">
         <div className="relative h-64 bg-gray-700 rounded-t-lg overflow-hidden">
           <Image
-            src={getImageSrc()}
+            src={getImageSrc() || "/placeholder.svg"}
             alt={`${car.brand} ${car.model}`}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -77,12 +84,11 @@ export default function CarCard({ car }: CarCardProps) {
             : car.description}
         </p>
 
-
         <div className="mt-auto">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center text-green-400">
               <DollarSign className="h-5 w-5 mr-1" />
-              <span className="text-xl font-bold">{car.price.toLocaleString("es-AR")}</span>
+              <span className="text-xl font-bold">${formatPrice(car.price)}</span>
             </div>
           </div>
 

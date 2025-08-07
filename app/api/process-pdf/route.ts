@@ -1,51 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server'
+import pdf from 'pdf-parse'
 
 export async function POST(request: NextRequest) {
   try {
-    // Esta es una implementación placeholder para el procesamiento de PDFs
-    // En el futuro se podría usar una librería como pdf-parse para extraer texto
-    
-    const formData = await request.formData()
-    const file = formData.get('file') as File
-    
-    if (!file) {
+    const { url } = await request.json()
+
+    if (!url) {
       return NextResponse.json(
-        { error: 'No se proporcionó ningún archivo' },
+        { error: 'URL is required' },
         { status: 400 }
       )
     }
 
-    if (file.type !== 'application/pdf') {
+    // Fetch the PDF from the URL
+    const response = await fetch(url)
+    if (!response.ok) {
       return NextResponse.json(
-        { error: 'El archivo debe ser un PDF' },
-        { status: 400 }
+        { error: 'Failed to fetch PDF' },
+        { status: 500 }
       )
     }
 
-    // Placeholder para procesamiento de PDF
-    // Aquí se implementaría la lógica para extraer texto y modelos del PDF
-    console.log('Processing PDF:', file.name, 'Size:', file.size)
+    const buffer = await response.arrayBuffer()
+    const dataBuffer = Buffer.from(buffer)
 
-    // Simular procesamiento
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // Process the PDF
+    const pdfData = await pdf(dataBuffer)
+    console.log('Processing PDF:', url)
 
-    // Respuesta placeholder
+    // Placeholder for extracting models from PDF
+    const models = [] // Placeholder
+
     return NextResponse.json({
       success: true,
-      message: 'PDF procesado exitosamente',
-      data: {
-        fileName: file.name,
-        fileSize: file.size,
-        totalModelos: 0, // Placeholder
-        extractedText: '', // Placeholder
-        processedAt: new Date().toISOString()
-      }
+      models: models,
+      totalModels: models.length,
+      extractedText: pdfData.text,
+      processedAt: new Date().toISOString()
     })
-
   } catch (error) {
     console.error('Error processing PDF:', error)
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
@@ -56,7 +52,7 @@ export async function GET() {
     message: 'PDF Processing API',
     version: '1.0.0',
     endpoints: {
-      POST: 'Process PDF file'
+      POST: 'Process PDF file by URL'
     }
   })
 }

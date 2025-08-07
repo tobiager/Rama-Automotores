@@ -28,14 +28,7 @@ export default function NotFound() {
                 </Link>
               </Button>
               
-              <Button 
-                variant="outline" 
-                onClick={() => window.history.back()}
-                className="border-gray-600 text-gray-300 hover:bg-gray-700"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Volver atrás
-              </Button>
+              <NotFoundBackButton />
               
               <Button 
                 variant="ghost" 
@@ -52,5 +45,22 @@ export default function NotFound() {
         </Card>
       </div>
     </div>
+  )
+}
+
+function NotFoundBackButton() {
+  return (
+    <Button 
+      variant="outline" 
+      className="border-gray-600 text-gray-300 hover:bg-gray-700"
+      onClick={() => {
+        if (typeof window !== 'undefined') {
+          window.history.back()
+        }
+      }}
+    >
+      <ArrowLeft className="mr-2 h-4 w-4" />
+      Volver atrás
+    </Button>
   )
 }

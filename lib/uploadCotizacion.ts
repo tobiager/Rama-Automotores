@@ -1,311 +1,257 @@
 import { supabase } from './supabase'
-import { getCotizaciones, uploadCotizacionPDF, validatePDFFile, type Cotizacion } from './cotizaciones'
+import { getCotizaciones, getCotizacionByPeriod, type Cotizacion } from './cotizaciones'
 
-// Función para obtener la URL de la última cotización
+export interface UploadResult {
+  success: boolean
+  error?: string
+  message?: string
+  cotizacion?: Cotizacion
+}
+
+export interface UploadProgress {
+  loaded: number
+  total: number
+  percentage: number
+}
+
+export async function uploadCotizacion(
+  file: File,
+  onProgress?: (progress: UploadProgress) => void
+): Promise<UploadResult> {
+  try {
+    // Validate file
+    const validation = validateCotizacionFile(file)
+    if (!validation.isValid) {
+      return { success: false, error: validation.error }
+    }
+
+    // Extract period from filename or use current date
+    const currentDate = new Date()
+    const mes = currentDate.getMonth() + 1
+    const anio = currentDate.getFullYear()
+
+    // Check if already exists
+    const exists = await checkCotizacionExists(mes, anio)
+    if (exists) {
+      return { 
+        success: false, 
+        error: `Ya existe una cotización para ${getMonthName(mes)} ${anio}` 
+      }
+    }
+
+    // Generate filename
+    const fileName = `${anio}-${mes.toString().padStart(2, '0')}-cotizacion.pdf`
+
+    // Simulate progress for upload
+    if (onProgress) {
+      onProgress({ loaded: 0, total: file.size, percentage: 0 })
+    }
+
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('cotizaciones')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError)
+      return { success: false, error: 'Error al subir el archivo al almacenamiento' }
+    }
+
+    if (onProgress) {
+      onProgress({ loaded: file.size * 0.7, total: file.size, percentage: 70 })
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('cotizaciones')
+      .getPublicUrl(fileName)
+
+    // Save to database
+    const { data: dbData, error: dbError } = await supabase
+      .from('cotizaciones')
+      .insert({
+        mes,
+        anio,
+        nombre_archivo: fileName,
+        url: urlData.publicUrl,
+        estado: 'completado'
+      })
+      .select()
+      .single()
+
+    if (dbError) {
+      console.error('Database error:', dbError)
+      // Cleanup uploaded file
+      await supabase.storage.from('cotizaciones').remove([fileName])
+      return { success: false, error: 'Error al guardar en la base de datos' }
+    }
+
+    if (onProgress) {
+      onProgress({ loaded: file.size, total: file.size, percentage: 100 })
+    }
+
+    return { 
+      success: true, 
+      message: 'Cotización subida exitosamente',
+      cotizacion: dbData
+    }
+  } catch (error) {
+    console.error('Error in uploadCotizacion:', error)
+    return { success: false, error: 'Error interno del servidor' }
+  }
+}
+
+export function validateCotizacionFile(file: File): { isValid: boolean; error?: string } {
+  if (!file) {
+    return { isValid: false, error: 'No se ha seleccionado ningún archivo' }
+  }
+
+  if (file.type !== 'application/pdf') {
+    return { isValid: false, error: 'El archivo debe ser un PDF' }
+  }
+
+  if (file.size === 0) {
+    return { isValid: false, error: 'El archivo está vacío' }
+  }
+
+  if (file.size > 10 * 1024 * 1024) { // 10MB limit
+    return { isValid: false, error: 'El archivo no puede superar los 10MB' }
+  }
+
+  return { isValid: true }
+}
+
+export async function checkCotizacionExists(mes: number, anio: number): Promise<boolean> {
+  try {
+    const cotizacion = await getCotizacionByPeriod(mes, anio)
+    return cotizacion !== null
+  } catch (error) {
+    console.error('Error checking cotizacion existence:', error)
+    return false
+  }
+}
+
 export async function getLastCotizacionUrl(): Promise<string | null> {
   try {
     const { data, error } = await supabase
       .from('cotizaciones')
       .select('url')
-      .order('anio', { ascending: false })
-      .order('mes', { ascending: false })
+      .eq('estado', 'completado')
+      .order('fecha_subida', { ascending: false })
       .limit(1)
       .single()
 
     if (error) {
       if (error.code === 'PGRST116') {
-        // No hay cotizaciones
-        return null
+        return null // No data found
       }
-      console.error('Error fetching last cotizacion URL:', error)
-      return null
+      throw error
     }
 
     return data?.url || null
   } catch (error) {
-    console.error('Error in getLastCotizacionUrl:', error)
+    console.error('Error getting last cotizacion URL:', error)
     return null
   }
 }
 
-// Alias para getAllCotizaciones (requerido por deployment)
-export const getAllCotizaciones = getCotizaciones
-
-// Función principal para subir cotización
-export async function uploadCotizacion(
-  file: File,
-  mes: number,
-  anio: number,
-  options?: {
-    onProgress?: (progress: number) => void
-    onSuccess?: (cotizacion: Cotizacion) => void
-    onError?: (error: string) => void
-  }
-): Promise<{ success: boolean; message: string; data?: Cotizacion }> {
-  try {
-    // Notificar inicio
-    options?.onProgress?.(0)
-
-    // Validar archivo
-    const validation = validateCotizacionFile(file)
-    if (!validation.valid) {
-      const error = validation.error || 'Archivo inválido'
-      options?.onError?.(error)
-      return { success: false, message: error }
-    }
-
-    options?.onProgress?.(25)
-
-    // Verificar si ya existe
-    const exists = await checkCotizacionExists(mes, anio)
-    if (exists) {
-      const error = `Ya existe una cotización para ${getMonthName(mes)} ${anio}`
-      options?.onError?.(error)
-      return { success: false, message: error }
-    }
-
-    options?.onProgress?.(50)
-
-    // Subir cotización
-    const result = await uploadCotizacionPDF(file, mes, anio)
-    
-    if (result.success && result.data) {
-      options?.onProgress?.(100)
-      options?.onSuccess?.(result.data)
-    } else {
-      options?.onError?.(result.message)
-    }
-
-    return result
-  } catch (error) {
-    console.error('Error in uploadCotizacion:', error)
-    const errorMessage = 'Error interno del servidor'
-    options?.onError?.(errorMessage)
-    return {
-      success: false,
-      message: errorMessage
-    }
-  }
+export async function getAllCotizaciones(): Promise<Cotizacion[]> {
+  return getCotizaciones()
 }
 
-// Función para validar archivo de cotización
-export function validateCotizacionFile(file: File): { valid: boolean; error?: string } {
-  return validatePDFFile(file)
-}
-
-// Función para verificar si existe una cotización
-export async function checkCotizacionExists(mes: number, anio: number): Promise<boolean> {
-  try {
-    const { data, error } = await supabase
-      .from('cotizaciones')
-      .select('id')
-      .eq('mes', mes)
-      .eq('anio', anio)
-      .single()
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        // No existe
-        return false
-      }
-      console.error('Error checking cotizacion existence:', error)
-      return false
-    }
-
-    return !!data
-  } catch (error) {
-    console.error('Error in checkCotizacionExists:', error)
-    return false
-  }
-}
-
-// Función para obtener estadísticas de cotizaciones
 export async function getCotizacionStats(): Promise<{
   total: number
-  porAnio: Record<number, number>
-  ultimaActualizacion: string | null
+  thisMonth: number
+  thisYear: number
+  lastUpdate: string | null
 }> {
   try {
     const cotizaciones = await getCotizaciones()
-    
-    const stats = {
+    const currentDate = new Date()
+    const currentMonth = currentDate.getMonth() + 1
+    const currentYear = currentDate.getFullYear()
+
+    const thisMonth = cotizaciones.filter(c => 
+      c.mes === currentMonth && c.anio === currentYear
+    ).length
+
+    const thisYear = cotizaciones.filter(c => 
+      c.anio === currentYear
+    ).length
+
+    const lastUpdate = cotizaciones.length > 0 
+      ? cotizaciones[0].fecha_subida 
+      : null
+
+    return {
       total: cotizaciones.length,
-      porAnio: {} as Record<number, number>,
-      ultimaActualizacion: null as string | null
+      thisMonth,
+      thisYear,
+      lastUpdate
     }
-
-    // Contar por año
-    cotizaciones.forEach(cotizacion => {
-      stats.porAnio[cotizacion.anio] = (stats.porAnio[cotizacion.anio] || 0) + 1
-    })
-
-    // Obtener última actualización
-    if (cotizaciones.length > 0) {
-      const latest = cotizaciones.reduce((latest, current) => {
-        const latestDate = new Date(latest.fecha_subida)
-        const currentDate = new Date(current.fecha_subida)
-        return currentDate > latestDate ? current : latest
-      })
-      stats.ultimaActualizacion = latest.fecha_subida
-    }
-
-    return stats
   } catch (error) {
-    console.error('Error in getCotizacionStats:', error)
+    console.error('Error getting cotizacion stats:', error)
     return {
       total: 0,
-      porAnio: {},
-      ultimaActualizacion: null
+      thisMonth: 0,
+      thisYear: 0,
+      lastUpdate: null
     }
   }
 }
 
-// Función para limpiar archivos huérfanos
-export async function cleanupOrphanedFiles(): Promise<{ 
-  success: boolean 
-  message: string 
-  filesRemoved?: number 
-}> {
+export async function cleanupOrphanedFiles(): Promise<{ success: boolean; cleaned: number }> {
   try {
-    // Obtener todos los archivos del storage
+    // Get all files from storage
     const { data: files, error: listError } = await supabase.storage
       .from('cotizaciones')
       .list()
 
     if (listError) {
-      console.error('Error listing storage files:', listError)
-      return {
-        success: false,
-        message: 'Error al listar archivos del storage'
-      }
+      console.error('Error listing files:', listError)
+      return { success: false, cleaned: 0 }
     }
 
-    if (!files || files.length === 0) {
-      return {
-        success: true,
-        message: 'No hay archivos en el storage',
-        filesRemoved: 0
-      }
-    }
+    // Get all cotizaciones from database
+    const cotizaciones = await getCotizaciones()
+    const dbFiles = new Set(cotizaciones.map(c => c.nombre_archivo))
 
-    // Obtener todos los nombres de archivo de la base de datos
-    const { data: cotizaciones, error: dbError } = await supabase
-      .from('cotizaciones')
-      .select('nombre_archivo')
-
-    if (dbError) {
-      console.error('Error fetching cotizaciones from DB:', dbError)
-      return {
-        success: false,
-        message: 'Error al consultar la base de datos'
-      }
-    }
-
-    const dbFileNames = new Set(
-      (cotizaciones || [])
-        .map(c => c.nombre_archivo)
-        .filter(Boolean)
-    )
-
-    // Encontrar archivos huérfanos
-    const orphanedFiles = files
-      .map(file => file.name)
-      .filter(fileName => !dbFileNames.has(fileName))
+    // Find orphaned files
+    const orphanedFiles = files?.filter(file => 
+      file.name && !dbFiles.has(file.name)
+    ) || []
 
     if (orphanedFiles.length === 0) {
-      return {
-        success: true,
-        message: 'No se encontraron archivos huérfanos',
-        filesRemoved: 0
-      }
+      return { success: true, cleaned: 0 }
     }
 
-    // Eliminar archivos huérfanos
-    const { error: removeError } = await supabase.storage
+    // Delete orphaned files
+    const filesToDelete = orphanedFiles.map(file => file.name).filter(Boolean)
+    const { error: deleteError } = await supabase.storage
       .from('cotizaciones')
-      .remove(orphanedFiles)
+      .remove(filesToDelete)
 
-    if (removeError) {
-      console.error('Error removing orphaned files:', removeError)
-      return {
-        success: false,
-        message: 'Error al eliminar archivos huérfanos'
-      }
+    if (deleteError) {
+      console.error('Error deleting orphaned files:', deleteError)
+      return { success: false, cleaned: 0 }
     }
 
-    return {
-      success: true,
-      message: `Se eliminaron ${orphanedFiles.length} archivos huérfanos`,
-      filesRemoved: orphanedFiles.length
-    }
+    console.log(`Cleaned up ${filesToDelete.length} orphaned files`)
+    return { success: true, cleaned: filesToDelete.length }
   } catch (error) {
     console.error('Error in cleanupOrphanedFiles:', error)
-    return {
-      success: false,
-      message: 'Error interno del servidor'
-    }
+    return { success: false, cleaned: 0 }
   }
 }
 
-// Función utilitaria para obtener nombre del mes
-function getMonthName(mes: number): string {
+// Utility functions
+function getMonthName(month: number): string {
   const months = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ]
-  return months[mes - 1] || 'Mes inválido'
-}
-
-// Función para obtener información detallada de una cotización
-export async function getCotizacionDetails(mes: number, anio: number): Promise<{
-  cotizacion: Cotizacion | null
-  fileSize?: number
-  fileExists?: boolean
-}> {
-  try {
-    const { data: cotizacion, error } = await supabase
-      .from('cotizaciones')
-      .select('*')
-      .eq('mes', mes)
-      .eq('anio', anio)
-      .single()
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return { cotizacion: null }
-      }
-      console.error('Error fetching cotizacion details:', error)
-      return { cotizacion: null }
-    }
-
-    // Verificar si el archivo existe en storage
-    let fileSize: number | undefined
-    let fileExists = false
-
-    if (cotizacion.nombre_archivo) {
-      try {
-        const { data: fileData, error: fileError } = await supabase.storage
-          .from('cotizaciones')
-          .list('', {
-            search: cotizacion.nombre_archivo
-          })
-
-        if (!fileError && fileData && fileData.length > 0) {
-          fileExists = true
-          fileSize = fileData[0].metadata?.size
-        }
-      } catch (error) {
-        console.warn('Error checking file existence:', error)
-      }
-    }
-
-    return {
-      cotizacion,
-      fileSize,
-      fileExists
-    }
-  } catch (error) {
-    console.error('Error in getCotizacionDetails:', error)
-    return { cotizacion: null }
-  }
+  return months[month - 1] || 'Mes inválido'
 }
