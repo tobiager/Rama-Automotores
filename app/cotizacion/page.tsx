@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { getLastCotizacionUrl } from '@/lib/uploadCotizacion'
-import { Search, Download, FileText, AlertCircle, RefreshCw, Loader2, ExternalLink, Calendar } from 'lucide-react'
+import { Search, Download, FileText, AlertCircle, RefreshCw, Loader2, ExternalLink, Calendar, ChevronUp, ChevronDown } from 'lucide-react'
 
 interface CotizacionData {
   url: string
@@ -17,12 +17,29 @@ interface CotizacionData {
   nombre_archivo?: string
 }
 
+interface SearchResult {
+  pageNumber: number
+  text: string
+  context: string
+}
+
+interface SearchResponse {
+  results: SearchResult[]
+  totalResults: number
+  message?: string
+}
+
 export default function CotizacionPage() {
   const [cotizacionData, setCotizacionData] = useState<CotizacionData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [searching, setSearching] = useState(false)
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const [currentResultIndex, setCurrentResultIndex] = useState(0)
+  const [totalResults, setTotalResults] = useState(0)
+  const [searchError, setSearchError] = useState<string | null>(null)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
 
   useEffect(() => {
     loadLatestCotizacion()
@@ -50,29 +67,96 @@ export default function CotizacionPage() {
     }
   }
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim() || !cotizacionData?.url) return
-    
+  const performSearch = async (query: string) => {
+    if (!query.trim() || !cotizacionData?.url) return
+
     setSearching(true)
-    
-    // Simulate search delay for better UX
-    setTimeout(() => {
-      // Update PDF URL with search parameters for highlighting
-      const searchUrl = `${cotizacionData.url}#search=${encodeURIComponent(searchQuery.trim())}`
-      
-      // Update iframe src to include search
-      const iframe = document.querySelector('iframe') as HTMLIFrameElement
-      if (iframe) {
-        iframe.src = searchUrl
+    setSearchError(null)
+    setSearchResults([])
+    setCurrentResultIndex(0)
+    setTotalResults(0)
+
+    try {
+      const response = await fetch('/api/search-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: query.trim(),
+          pdfUrl: cotizacionData.url
+        }),
+      })
+
+      const data: SearchResponse = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error en la búsqueda')
       }
-      
+
+      if (data.results && data.results.length > 0) {
+        setSearchResults(data.results)
+        setTotalResults(data.totalResults || data.results.length)
+        setCurrentResultIndex(0)
+        
+        // Navigate to first result
+        navigateToResult(data.results[0])
+      } else {
+        setSearchError(`No se encontraron coincidencias para "${query}"`)
+      }
+
+    } catch (err) {
+      console.error('Search error:', err)
+      setSearchError(err instanceof Error ? err.message : 'Error al realizar la búsqueda')
+    } finally {
       setSearching(false)
-    }, 500)
+    }
+  }
+
+  const navigateToResult = (result: SearchResult) => {
+    if (iframeRef.current) {
+      // Update iframe URL to navigate to specific page with search highlighting
+      const searchUrl = `${cotizacionData?.url}#page=${result.pageNumber}&search=${encodeURIComponent(searchQuery)}&phrase=true`
+      iframeRef.current.src = searchUrl
+    }
+  }
+
+  const handleSearch = async () => {
+    await performSearch(searchQuery)
   }
 
   const handleSearchKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !searching) {
       handleSearch()
+    }
+  }
+
+  const handleNextResult = () => {
+    if (searchResults.length > 0) {
+      const nextIndex = (currentResultIndex + 1) % searchResults.length
+      setCurrentResultIndex(nextIndex)
+      navigateToResult(searchResults[nextIndex])
+    }
+  }
+
+  const handlePreviousResult = () => {
+    if (searchResults.length > 0) {
+      const prevIndex = currentResultIndex === 0 ? searchResults.length - 1 : currentResultIndex - 1
+      setCurrentResultIndex(prevIndex)
+      navigateToResult(searchResults[prevIndex])
+    }
+  }
+
+  const clearSearch = () => {
+    setSearchQuery('')
+    setSearchResults([])
+    setCurrentResultIndex(0)
+    setTotalResults(0)
+    setSearchError(null)
+    
+    // Reset iframe to original URL
+    if (iframeRef.current && cotizacionData?.url) {
+      iframeRef.current.src = `${cotizacionData.url}#toolbar=1&navpanes=1&scrollbar=1&page=1&view=FitH`
     }
   }
 
@@ -258,6 +342,69 @@ export default function CotizacionPage() {
                       </div>
                     </div>
 
+                    {/* Search Results Navigation */}
+                    {searchResults.length > 0 && (
+                      <div className="mb-4 p-3 bg-green-900/20 border border-green-800 rounded-lg">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="default" className="bg-green-600 text-white">
+                              {totalResults} resultado{totalResults !== 1 ? 's' : ''} encontrado{totalResults !== 1 ? 's' : ''}
+                            </Badge>
+                            {totalResults > 1 && (
+                              <span className="text-sm text-gray-300">
+                                Mostrando {currentResultIndex + 1} de {totalResults}
+                              </span>
+                            )}
+                          </div>
+                          {totalResults > 1 && (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handlePreviousResult}
+                                className="border-green-600 text-green-300 hover:bg-green-800"
+                              >
+                                <ChevronUp className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleNextResult}
+                                className="border-green-600 text-green-300 hover:bg-green-800"
+                              >
+                                <ChevronDown className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={clearSearch}
+                            className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                          >
+                            Limpiar búsqueda
+                          </Button>
+                        </div>
+                        {searchResults[currentResultIndex] && (
+                          <div className="mt-2 text-sm text-gray-300">
+                            <strong>Página {searchResults[currentResultIndex].pageNumber}:</strong> {searchResults[currentResultIndex].context}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Search Error */}
+                    {searchError && (
+                      <div className="mb-4">
+                        <Alert variant="destructive" className="bg-red-900/20 border-red-800">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription className="text-red-300">
+                            {searchError}
+                          </AlertDescription>
+                        </Alert>
+                      </div>
+                    )}
+
                     {/* Instructions */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                       <div className="flex items-center gap-2 text-gray-400">
@@ -276,7 +423,7 @@ export default function CotizacionPage() {
                         <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
                           3
                         </div>
-                        <span>Ve los resultados resaltados en el PDF</span>
+                        <span>Navega entre resultados con las flechas</span>
                       </div>
                     </div>
                   </CardContent>
@@ -292,9 +439,9 @@ export default function CotizacionPage() {
                         <CardTitle className="text-white flex items-center gap-2">
                           <FileText className="h-5 w-5" />
                           Cotización Oficial
-                          {searchQuery && (
-                            <span className="text-sm font-normal text-gray-400 ml-2">
-                              - Buscando: "{searchQuery}"
+                          {searchQuery && searchResults.length > 0 && (
+                            <span className="text-sm font-normal text-green-400 ml-2">
+                              - "{searchQuery}" ({totalResults} resultado{totalResults !== 1 ? 's' : ''})
                             </span>
                           )}
                         </CardTitle>
@@ -316,7 +463,8 @@ export default function CotizacionPage() {
                   <CardContent>
                     <div className="bg-white rounded-lg overflow-hidden" style={{ height: '80vh' }}>
                       <iframe
-                        src={`${cotizacionData.url}#toolbar=1&navpanes=1&scrollbar=1&page=1&view=FitH${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`}
+                        ref={iframeRef}
+                        src={`${cotizacionData.url}#toolbar=1&navpanes=1&scrollbar=1&page=1&view=FitH`}
                         width="100%"
                         height="100%"
                         style={{ border: 'none' }}
@@ -345,6 +493,16 @@ export default function CotizacionPage() {
                         <Download className="h-3 w-3 mr-1" />
                         Descargar Archivo
                       </Button>
+                      {searchResults.length > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={clearSearch}
+                          className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                        >
+                          Limpiar Búsqueda
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
