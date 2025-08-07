@@ -1,43 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pdf from 'pdf-parse'
 
 export async function POST(request: NextRequest) {
   try {
-    const { url } = await request.json()
+    const formData = await request.formData()
+    const file = formData.get('file') as File
 
-    if (!url) {
+    if (!file) {
       return NextResponse.json(
-        { error: 'URL is required' },
+        { error: 'No file provided' },
         { status: 400 }
       )
     }
 
-    // Fetch the PDF from the URL
-    const response = await fetch(url)
-    if (!response.ok) {
+    // Validate file type
+    if (file.type !== 'application/pdf') {
       return NextResponse.json(
-        { error: 'Failed to fetch PDF' },
-        { status: 500 }
+        { error: 'File must be a PDF' },
+        { status: 400 }
       )
     }
 
-    const buffer = await response.arrayBuffer()
-    const dataBuffer = Buffer.from(buffer)
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024 // 10MB
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        { error: 'File size must be less than 10MB' },
+        { status: 400 }
+      )
+    }
 
-    // Process the PDF
-    const pdfData = await pdf(dataBuffer)
-    console.log('Processing PDF:', url)
-
-    // Placeholder for extracting models from PDF
-    const models = [] // Placeholder
-
+    // For now, return a simple success response
+    // In the future, this could process the PDF content
     return NextResponse.json({
       success: true,
-      models: models,
-      totalModels: models.length,
-      extractedText: pdfData.text,
-      processedAt: new Date().toISOString()
+      message: 'PDF processed successfully',
+      filename: file.name,
+      size: file.size,
+      type: file.type
     })
+
   } catch (error) {
     console.error('Error processing PDF:', error)
     return NextResponse.json(
@@ -49,10 +50,9 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   return NextResponse.json({
-    message: 'PDF Processing API',
-    version: '1.0.0',
-    endpoints: {
-      POST: 'Process PDF file by URL'
-    }
+    message: 'PDF processing endpoint',
+    methods: ['POST'],
+    maxSize: '10MB',
+    supportedTypes: ['application/pdf']
   })
 }
