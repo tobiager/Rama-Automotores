@@ -8,6 +8,16 @@ export interface Cotizacion {
   url: string
   estado: 'procesando' | 'completado' | 'error'
   fecha_subida: string
+  total_modelos?: number
+}
+
+export interface ModeloAuto {
+  id: number
+  marca: string
+  modelo: string
+  anio: number
+  precio: number
+  descripcion?: string
 }
 
 export async function getCotizaciones(): Promise<Cotizacion[]> {
@@ -28,6 +38,10 @@ export async function getCotizaciones(): Promise<Cotizacion[]> {
     console.error('Error in getCotizaciones:', error)
     return []
   }
+}
+
+export async function getAllCotizaciones(): Promise<Cotizacion[]> {
+  return getCotizaciones()
 }
 
 export async function getCotizacionByPeriod(mes: number, anio: number): Promise<Cotizacion | null> {
@@ -55,6 +69,32 @@ export async function getCotizacionByPeriod(mes: number, anio: number): Promise<
   }
 }
 
+export async function getLatestCotizacion(): Promise<Cotizacion | null> {
+  try {
+    const { data, error } = await supabase
+      .from('cotizaciones')
+      .select('*')
+      .order('anio', { ascending: false })
+      .order('mes', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No rows found
+        return null
+      }
+      console.error('Error fetching latest cotizacion:', error)
+      return null
+    }
+
+    return data
+  } catch (error) {
+    console.error('Error in getLatestCotizacion:', error)
+    return null
+  }
+}
+
 export async function uploadCotizacionPDF(
   file: File,
   mes: number,
@@ -68,6 +108,12 @@ export async function uploadCotizacionPDF(
 
     if (file.size > 10 * 1024 * 1024) { // 10MB limit
       return { success: false, message: 'El archivo no puede ser mayor a 10MB' }
+    }
+
+    // Check if cotizacion already exists for this period
+    const existingCotizacion = await getCotizacionByPeriod(mes, anio)
+    if (existingCotizacion) {
+      return { success: false, message: `Ya existe una cotización para ${mes}/${anio}. Use la función de reemplazar.` }
     }
 
     // Generate filename
@@ -91,21 +137,28 @@ export async function uploadCotizacionPDF(
       .from('cotizaciones')
       .getPublicUrl(fileName)
 
+    // Process PDF content (placeholder for future implementation)
+    const pdfContent = await processPDFContent(file)
+
     // Save to database
     const { data: dbData, error: dbError } = await supabase
       .from('cotizaciones')
-      .upsert({
+      .insert({
         mes,
         anio,
         nombre_archivo: fileName,
         url: urlData.publicUrl,
-        estado: 'completado'
+        estado: 'completado',
+        fecha_subida: new Date().toISOString(),
+        total_modelos: pdfContent.totalModelos
       })
       .select()
       .single()
 
     if (dbError) {
       console.error('Database error:', dbError)
+      // Clean up uploaded file if database insert fails
+      await supabase.storage.from('cotizaciones').remove([fileName])
       return { success: false, message: 'Error al guardar en la base de datos' }
     }
 
@@ -147,17 +200,56 @@ export async function replaceCotizacion(
       console.error('Error deleting old file:', deleteError)
     }
 
+    // Generate new filename
+    const fileName = `${anio}-${mes.toString().padStart(2, '0')}-cotizacion.pdf`
+
     // Upload new file
-    const uploadResult = await uploadCotizacionPDF(file, mes, anio)
-    
-    if (!uploadResult.success) {
-      return uploadResult
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('cotizaciones')
+      .upload(fileName, file, {
+        upsert: true,
+        contentType: 'application/pdf'
+      })
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError)
+      return { success: false, message: 'Error al subir el nuevo archivo' }
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('cotizaciones')
+      .getPublicUrl(fileName)
+
+    // Process PDF content
+    const pdfContent = await processPDFContent(file)
+
+    // Update database record
+    const { data: updateData, error: updateError } = await supabase
+      .from('cotizaciones')
+      .update({
+        mes,
+        anio,
+        nombre_archivo: fileName,
+        url: urlData.publicUrl,
+        fecha_subida: new Date().toISOString(),
+        total_modelos: pdfContent.totalModelos
+      })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (updateError) {
+      console.error('Database update error:', updateError)
+      // Clean up uploaded file if database update fails
+      await supabase.storage.from('cotizaciones').remove([fileName])
+      return { success: false, message: 'Error al actualizar en la base de datos' }
     }
 
     return {
       success: true,
       message: 'Cotización reemplazada exitosamente',
-      data: uploadResult.data
+      data: updateData
     }
   } catch (error) {
     console.error('Error in replaceCotizacion:', error)
@@ -203,4 +295,88 @@ export async function deleteCotizacion(id: number): Promise<{ success: boolean; 
     console.error('Error in deleteCotizacion:', error)
     return { success: false, message: 'Error inesperado al eliminar la cotización' }
   }
+}
+
+export async function searchModelos(query: string): Promise<ModeloAuto[]> {
+  try {
+    // This is a placeholder implementation
+    // In a real application, this would search through PDF content or a separate models table
+    console.log('Searching for models with query:', query)
+    
+    // For now, return empty array as this feature is not yet implemented
+    return []
+  } catch (error) {
+    console.error('Error in searchModelos:', error)
+    return []
+  }
+}
+
+export async function processPDFContent(file: File): Promise<{ totalModelos?: number }> {
+  try {
+    // Placeholder for future PDF processing implementation
+    // This would use a PDF parsing library to extract model information
+    console.log('Processing PDF content for file:', file.name)
+    
+    // For now, return undefined total_modelos
+    // In the future, this could use libraries like pdf-parse or pdf2pic
+    // to extract and count vehicle models from the PDF
+    
+    return { totalModelos: undefined }
+  } catch (error) {
+    console.error('Error processing PDF content:', error)
+    return { totalModelos: undefined }
+  }
+}
+
+// Additional utility functions
+export async function getCotizacionesByYear(anio: number): Promise<Cotizacion[]> {
+  try {
+    const { data, error } = await supabase
+      .from('cotizaciones')
+      .select('*')
+      .eq('anio', anio)
+      .order('mes', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching cotizaciones by year:', error)
+      return []
+    }
+
+    return data || []
+  } catch (error) {
+    console.error('Error in getCotizacionesByYear:', error)
+    return []
+  }
+}
+
+export async function getCotizacionesByMonth(mes: number): Promise<Cotizacion[]> {
+  try {
+    const { data, error } = await supabase
+      .from('cotizaciones')
+      .select('*')
+      .eq('mes', mes)
+      .order('anio', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching cotizaciones by month:', error)
+      return []
+    }
+
+    return data || []
+  } catch (error) {
+    console.error('Error in getCotizacionesByMonth:', error)
+    return []
+  }
+}
+
+export function getMonthName(mes: number): string {
+  const months = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ]
+  return months[mes - 1] || 'Mes inválido'
+}
+
+export function formatCotizacionPeriod(cotizacion: Cotizacion): string {
+  return `${getMonthName(cotizacion.mes)} ${cotizacion.anio}`
 }

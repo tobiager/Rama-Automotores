@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { getCotizaciones, type Cotizacion } from './cotizaciones'
 
 export interface UploadResult {
   success: boolean
@@ -87,5 +88,108 @@ export async function uploadCotizacion(
   } catch (error) {
     console.error('Error in uploadCotizacion:', error)
     return { success: false, message: 'Error inesperado durante la subida' }
+  }
+}
+
+export async function getLastCotizacionUrl(): Promise<string | null> {
+  try {
+    console.log('🔍 Buscando última cotización...')
+    
+    const { data, error } = await supabase
+      .from('cotizaciones')
+      .select('url')
+      .order('anio', { ascending: false })
+      .order('mes', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No rows found
+        console.log('📭 No se encontraron cotizaciones')
+        return null
+      }
+      console.error('❌ Error fetching last cotizacion:', error)
+      throw error
+    }
+
+    console.log('📄 URL de última cotización:', data?.url)
+    return data?.url || null
+
+  } catch (error) {
+    console.error('💥 Error en getLastCotizacionUrl:', error)
+    return null
+  }
+}
+
+export async function getAllCotizaciones(): Promise<Cotizacion[]> {
+  return getCotizaciones()
+}
+
+export async function getLatestCotizacionUrl(): Promise<string | null> {
+  return getLastCotizacionUrl()
+}
+
+export async function getCotizacionUrl(mes: number, anio: number): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from('cotizaciones')
+      .select('url')
+      .eq('mes', mes)
+      .eq('anio', anio)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null
+      }
+      console.error('Error fetching cotizacion URL:', error)
+      return null
+    }
+
+    return data?.url || null
+  } catch (error) {
+    console.error('Error in getCotizacionUrl:', error)
+    return null
+  }
+}
+
+export async function validateCotizacionFile(file: File): Promise<{ valid: boolean; message: string }> {
+  if (!file) {
+    return { valid: false, message: 'No se ha seleccionado ningún archivo' }
+  }
+
+  if (file.type !== 'application/pdf') {
+    return { valid: false, message: 'El archivo debe ser un PDF' }
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    return { valid: false, message: 'El archivo no puede ser mayor a 10MB' }
+  }
+
+  if (file.size < 1024) {
+    return { valid: false, message: 'El archivo parece estar vacío o corrupto' }
+  }
+
+  return { valid: true, message: 'Archivo válido' }
+}
+
+export async function checkCotizacionExists(mes: number, anio: number): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('cotizaciones')
+      .select('id')
+      .eq('mes', mes)
+      .eq('anio', anio)
+      .single()
+
+    if (error && error.code === 'PGRST116') {
+      return false
+    }
+
+    return !!data
+  } catch (error) {
+    console.error('Error checking cotizacion existence:', error)
+    return false
   }
 }
