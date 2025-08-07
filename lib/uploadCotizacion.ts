@@ -1,12 +1,46 @@
 import { supabase } from './supabase'
 import { getCotizaciones, getLatestCotizacion, getAllCotizaciones } from './cotizaciones'
 
-export async function getLastCotizacionUrl(): Promise<string | null> {
+interface CotizacionData {
+  url: string
+  fecha_subida: string
+  mes?: number
+  anio?: number
+  nombre_archivo?: string
+}
+
+export async function getLastCotizacionUrl(): Promise<CotizacionData | null> {
   try {
-    const latest = await getLatestCotizacion()
-    return latest?.archivo_url || null
+    console.log('Fetching latest cotizacion from Supabase...')
+    
+    const { data, error } = await supabase
+      .from('cotizaciones')
+      .select('url, fecha_subida, mes, anio, nombre_archivo')
+      .eq('estado', 'completado')
+      .order('fecha_subida', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (error) {
+      console.error('Error fetching cotizacion:', error)
+      return null
+    }
+
+    if (!data || !data.url) {
+      console.log('No cotizacion found or URL is empty')
+      return null
+    }
+
+    console.log('Latest cotizacion found:', data)
+    return {
+      url: data.url,
+      fecha_subida: data.fecha_subida,
+      mes: data.mes,
+      anio: data.anio,
+      nombre_archivo: data.nombre_archivo
+    }
   } catch (error) {
-    console.error('Error getting last cotizacion URL:', error)
+    console.error('Error in getLastCotizacionUrl:', error)
     return null
   }
 }
