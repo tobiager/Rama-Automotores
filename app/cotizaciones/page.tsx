@@ -9,10 +9,12 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Search, FileText, Download } from "lucide-react"
-import * as pdfjsLib from "pdfjs-dist"
+import { GlobalWorkerOptions, getDocument, version } from "pdfjs-dist"
+
 
 // Configurar worker de PDF.js
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
+GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.js`
+
 
 interface SearchResult {
   pageNumber: number
@@ -55,7 +57,7 @@ export default function CotizacionesPage() {
 
   const loadPdfDocument = async (url: string) => {
     try {
-      const pdf = await pdfjsLib.getDocument(url).promise
+      const pdf = await getDocument(url).promise
       setPdfDocument(pdf)
     } catch (err) {
       console.error("Error loading PDF document:", err)
