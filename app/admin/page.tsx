@@ -1,22 +1,51 @@
-'use client'
+"use client"
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
-import { Textarea } from '@/components/ui/textarea'
-import { supabase } from '@/lib/supabase'
-import MultipleImageUpload from '@/components/multiple-image-upload'
-import { Car, Users, MessageSquare, FileText, Plus, Trash2, Upload, Edit, Eye, CheckCircle, XCircle, Loader2, AlertCircle, Download, User, Lock, EyeOff } from 'lucide-react'
+import type React from "react"
 
-interface Car {
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { supabase } from "@/lib/supabase"
+import MultipleImageUpload from "@/components/multiple-image-upload"
+import {
+  MessageSquare,
+  FileText,
+  Plus,
+  Trash2,
+  Upload,
+  Edit,
+  Eye,
+  CheckCircle,
+  Loader2,
+  AlertCircle,
+  Download,
+  User,
+  Lock,
+  EyeOff,
+  Percent,
+  Car,
+} from "lucide-react"
+
+interface ICar {
   id: number
   brand: string
   model: string
@@ -54,43 +83,51 @@ interface Cotizacion {
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [loginError, setLoginError] = useState('')
-  const [cars, setCars] = useState<Car[]>([])
+  const [loginError, setLoginError] = useState("")
+  const [cars, setCars] = useState<ICar[]>([])
   const [messages, setMessages] = useState<ContactMessage[]>([])
   const [cotizaciones, setCotizaciones] = useState<Cotizacion[]>([])
   const [loading, setLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState('cars')
-  const [filter, setFilter] = useState<'all' | 'available' | 'sold' | 'deleted'>('all')
-  const [editingCar, setEditingCar] = useState<Car | null>(null)
+  const [activeTab, setActiveTab] = useState("cars")
+  const [filter, setFilter] = useState<"all" | "available" | "sold" | "deleted">("all")
+  const [editingCar, setEditingCar] = useState<ICar | null>(null)
 
   // New car form state
   const [newCar, setNewCar] = useState({
-    brand: '',
-    model: '',
+    brand: "",
+    model: "",
     year: new Date().getFullYear(),
     price: 0,
     mileage: 0,
-    fuel: 'Nafta',
-    transmission: 'Manual',
-    color: '',
-    description: '',
-    images: [] as string[]
+    fuel: "Nafta",
+    transmission: "Manual",
+    color: "",
+    description: "",
+    images: [] as string[],
   })
 
   // Estados para cotizaciones
   const [uploadingCotizacion, setUploadingCotizacion] = useState(false)
   const [cotizacionFile, setCotizacionFile] = useState<File | null>(null)
-  const [cotizacionMes, setCotizacionMes] = useState('')
-  const [cotizacionAnio, setCotizacionAnio] = useState('')
-  const [cotizacionMessage, setCotizacionMessage] = useState('')
-  const [cotizacionError, setCotizacionError] = useState('')
+  const [cotizacionMes, setCotizacionMes] = useState("")
+  const [cotizacionAnio, setCotizacionAnio] = useState("")
+  const [cotizacionMessage, setCotizacionMessage] = useState("")
+  const [cotizacionError, setCotizacionError] = useState("")
+
+  // Estados para tasas de financiación
+  const [tasas, setTasas] = useState<{ meses: number; tasa_anual: number }[]>([])
+  const [editingTasa, setEditingTasa] = useState<{ meses: number; tasa_anual: number } | null>(null)
+  const [newTasa, setNewTasa] = useState({ meses: 0, tasa_anual: 0 })
+  const [tasaMessage, setTasaMessage] = useState("")
+  const [tasaError, setTasaError] = useState("")
+  const [showTasaModal, setShowTasaModal] = useState(false)
 
   useEffect(() => {
     // Check if already logged in
-    const adminToken = localStorage.getItem('admin_token')
+    const adminToken = localStorage.getItem("admin_token")
     if (adminToken) {
       setIsAuthenticated(true)
       loadData()
@@ -100,13 +137,9 @@ export default function AdminPage() {
   const loadData = async () => {
     setLoading(true)
     try {
-      await Promise.all([
-        loadCars(),
-        loadMessages(),
-        loadCotizaciones()
-      ])
+      await Promise.all([loadCars(), loadMessages(), loadCotizaciones(), loadTasas()])
     } catch (error) {
-      console.error('Error loading data:', error)
+      console.error("Error loading data:", error)
     } finally {
       setLoading(false)
     }
@@ -114,30 +147,24 @@ export default function AdminPage() {
 
   const loadCars = async () => {
     try {
-      const { data, error } = await supabase
-        .from('cars')
-        .select('*')
-        .order('created_at', { ascending: false })
+      const { data, error } = await supabase.from("cars").select("*").order("created_at", { ascending: false })
 
       if (error) throw error
       setCars(data || [])
     } catch (error) {
-      console.error('Error loading cars:', error)
+      console.error("Error loading cars:", error)
       setCars([])
     }
   }
 
   const loadMessages = async () => {
     try {
-      const { data, error } = await supabase
-        .from('contacts')
-        .select('*')
-        .order('created_at', { ascending: false })
+      const { data, error } = await supabase.from("contacts").select("*").order("created_at", { ascending: false })
 
       if (error) throw error
       setMessages(data || [])
     } catch (error) {
-      console.error('Error loading messages:', error)
+      console.error("Error loading messages:", error)
       setMessages([])
     }
   }
@@ -145,51 +172,63 @@ export default function AdminPage() {
   const loadCotizaciones = async () => {
     try {
       const { data, error } = await supabase
-        .from('cotizaciones')
-        .select('*')
-        .order('fecha_subida', { ascending: false })
+        .from("cotizaciones")
+        .select("*")
+        .order("fecha_subida", { ascending: false })
 
       if (error) throw error
       setCotizaciones(data || [])
     } catch (error) {
-      console.error('Error loading cotizaciones:', error)
+      console.error("Error loading cotizaciones:", error)
       setCotizaciones([])
+    }
+  }
+
+  const loadTasas = async () => {
+    try {
+      const { data, error } = await supabase.from("tasas_financiacion").select("*").order("meses", { ascending: true })
+
+      if (error) throw error
+      setTasas(data || [])
+    } catch (error) {
+      console.error("Error loading tasas:", error)
+      setTasas([])
     }
   }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoginError('')
+    setLoginError("")
     setLoading(true)
 
     try {
       const { data, error } = await supabase
-        .from('admin_users')
-        .select('*')
-        .eq('username', username)
-        .eq('password', password)
+        .from("admin_users")
+        .select("*")
+        .eq("username", username)
+        .eq("password", password)
         .single()
 
       if (error || !data) {
-        setLoginError('Credenciales incorrectas')
+        setLoginError("Credenciales incorrectas")
         return
       }
 
-      localStorage.setItem('admin_token', 'authenticated')
+      localStorage.setItem("admin_token", "authenticated")
       setIsAuthenticated(true)
       await loadData()
     } catch (error) {
-      setLoginError('Error al iniciar sesión')
+      setLoginError("Error al iniciar sesión")
     } finally {
       setLoading(false)
     }
   }
 
   const handleLogout = () => {
-    localStorage.removeItem('admin_token')
+    localStorage.removeItem("admin_token")
     setIsAuthenticated(false)
-    setUsername('')
-    setPassword('')
+    setUsername("")
+    setPassword("")
   }
 
   const handleAddCar = async (e: React.FormEvent) => {
@@ -197,27 +236,25 @@ export default function AdminPage() {
     setLoading(true)
 
     try {
-      const { error } = await supabase
-        .from('cars')
-        .insert([{ ...newCar, sold: false, deleted: false }])
+      const { error } = await supabase.from("cars").insert([{ ...newCar, sold: false, deleted: false }])
 
       if (!error) {
         setNewCar({
-          brand: '',
-          model: '',
+          brand: "",
+          model: "",
           year: new Date().getFullYear(),
           price: 0,
           mileage: 0,
-          fuel: 'Nafta',
-          transmission: 'Manual',
-          color: '',
-          description: '',
-          images: []
+          fuel: "Nafta",
+          transmission: "Manual",
+          color: "",
+          description: "",
+          images: [],
         })
         await loadCars()
       }
     } catch (error) {
-      console.error('Error adding car:', error)
+      console.error("Error adding car:", error)
     } finally {
       setLoading(false)
     }
@@ -230,17 +267,14 @@ export default function AdminPage() {
     setLoading(true)
 
     try {
-      const { error } = await supabase
-        .from('cars')
-        .update(editingCar)
-        .eq('id', editingCar.id)
+      const { error } = await supabase.from("cars").update(editingCar).eq("id", editingCar.id)
 
       if (!error) {
         setEditingCar(null)
         await loadCars()
       }
     } catch (error) {
-      console.error('Error updating car:', error)
+      console.error("Error updating car:", error)
     } finally {
       setLoading(false)
     }
@@ -248,171 +282,233 @@ export default function AdminPage() {
 
   const updateCarStatus = async (carId: number, newSold: boolean) => {
     try {
-      const { error } = await supabase
-        .from('cars')
-        .update({ sold: newSold })
-        .eq('id', carId)
+      const { error } = await supabase.from("cars").update({ sold: newSold }).eq("id", carId)
 
       if (error) throw error
 
       // Update local state
-      setCars(cars.map(car => 
-        car.id === carId ? { ...car, sold: newSold } : car
-      ))
+      setCars(cars.map((car) => (car.id === carId ? { ...car, sold: newSold } : car)))
     } catch (error) {
-      console.error('Error updating car status:', error)
+      console.error("Error updating car status:", error)
     }
   }
 
   const restoreCar = async (carId: number) => {
     try {
-      const { error } = await supabase
-        .from('cars')
-        .update({ deleted: false })
-        .eq('id', carId)
+      const { error } = await supabase.from("cars").update({ deleted: false }).eq("id", carId)
 
       if (error) throw error
 
       // Update local state
-      setCars(cars.map(car => 
-        car.id === carId ? { ...car, deleted: false } : car
-      ))
+      setCars(cars.map((car) => (car.id === carId ? { ...car, deleted: false } : car)))
     } catch (error) {
-      console.error('Error restoring car:', error)
+      console.error("Error restoring car:", error)
     }
   }
 
   const softDeleteCar = async (carId: number) => {
     try {
-      const { error } = await supabase
-        .from('cars')
-        .update({ deleted: true })
-        .eq('id', carId)
+      const { error } = await supabase.from("cars").update({ deleted: true }).eq("id", carId)
 
       if (error) throw error
 
       // Update local state
-      setCars(cars.map(car => 
-        car.id === carId ? { ...car, deleted: true } : car
-      ))
+      setCars(cars.map((car) => (car.id === carId ? { ...car, deleted: true } : car)))
     } catch (error) {
-      console.error('Error deleting car:', error)
+      console.error("Error deleting car:", error)
     }
   }
 
   const handleCotizacionUpload = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!cotizacionFile || !cotizacionMes || !cotizacionAnio) {
-      setCotizacionError('Por favor completa todos los campos')
+      setCotizacionError("Por favor completa todos los campos")
       return
     }
 
     setUploadingCotizacion(true)
-    setCotizacionError('')
-    setCotizacionMessage('')
+    setCotizacionError("")
+    setCotizacionMessage("")
 
     try {
       // Upload file to Supabase Storage
-      const fileName = `${cotizacionAnio}-${cotizacionMes.padStart(2, '0')}-cotizacion.pdf`
-      
+      const fileName = `${cotizacionAnio}-${cotizacionMes.padStart(2, "0")}-cotizacion.pdf`
+
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('cotizaciones')
+        .from("cotizaciones")
         .upload(fileName, cotizacionFile, {
-          upsert: true
+          upsert: true,
         })
 
       if (uploadError) throw uploadError
 
       // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('cotizaciones')
-        .getPublicUrl(fileName)
+      const { data: urlData } = supabase.storage.from("cotizaciones").getPublicUrl(fileName)
 
       // Save to database
-      const { error: dbError } = await supabase
-        .from('cotizaciones')
-        .upsert({
-          mes: parseInt(cotizacionMes),
-          anio: parseInt(cotizacionAnio),
-          nombre_archivo: fileName,
-          url: urlData.publicUrl,
-          estado: 'completado'
-        })
+      const { error: dbError } = await supabase.from("cotizaciones").upsert({
+        mes: Number.parseInt(cotizacionMes),
+        anio: Number.parseInt(cotizacionAnio),
+        nombre_archivo: fileName,
+        url: urlData.publicUrl,
+        estado: "completado",
+      })
 
       if (dbError) throw dbError
 
-      setCotizacionMessage('Cotización subida exitosamente')
+      setCotizacionMessage("Cotización subida exitosamente")
       setCotizacionFile(null)
-      setCotizacionMes('')
-      setCotizacionAnio('')
+      setCotizacionMes("")
+      setCotizacionAnio("")
       await loadCotizaciones()
     } catch (error) {
-      setCotizacionError('Error al subir la cotización')
-      console.error('Upload error:', error)
+      setCotizacionError("Error al subir la cotización")
+      console.error("Upload error:", error)
     } finally {
       setUploadingCotizacion(false)
     }
   }
 
   const handleDeleteCotizacion = async (id: number) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar esta cotización?')) {
+    if (!window.confirm("¿Estás seguro de que quieres eliminar esta cotización?")) {
       return
     }
 
     try {
-      const cotizacion = cotizaciones.find(c => c.id === id)
+      const cotizacion = cotizaciones.find((c) => c.id === id)
       if (!cotizacion) return
 
       // Delete from storage
-      const { error: storageError } = await supabase.storage
-        .from('cotizaciones')
-        .remove([cotizacion.nombre_archivo])
+      const { error: storageError } = await supabase.storage.from("cotizaciones").remove([cotizacion.nombre_archivo])
 
       if (storageError) {
-        console.error('Error deleting from storage:', storageError)
+        console.error("Error deleting from storage:", storageError)
       }
 
       // Delete from database
-      const { error: dbError } = await supabase
-        .from('cotizaciones')
-        .delete()
-        .eq('id', id)
+      const { error: dbError } = await supabase.from("cotizaciones").delete().eq("id", id)
 
       if (dbError) throw dbError
 
-      setCotizacionMessage('Cotización eliminada exitosamente')
+      setCotizacionMessage("Cotización eliminada exitosamente")
       await loadCotizaciones()
     } catch (error) {
-      setCotizacionError('Error al eliminar la cotización')
-      console.error('Delete error:', error)
+      setCotizacionError("Error al eliminar la cotización")
+      console.error("Delete error:", error)
+    }
+  }
+
+  const handleAddTasa = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setTasaError("")
+    setTasaMessage("")
+
+    if (newTasa.meses <= 0 || newTasa.tasa_anual <= 0) {
+      setTasaError("Los meses y la tasa deben ser mayores a 0")
+      return
+    }
+
+    try {
+      const { error } = await supabase.from("tasas_financiacion").insert([newTasa])
+
+      if (error) throw error
+
+      setTasaMessage("Tasa agregada exitosamente")
+      setNewTasa({ meses: 0, tasa_anual: 0 })
+      setShowTasaModal(false)
+      await loadTasas()
+    } catch (error: any) {
+      if (error.code === "23505") {
+        setTasaError("Ya existe una tasa para ese plazo en meses")
+      } else {
+        setTasaError("Error al agregar la tasa")
+      }
+      console.error("Error adding tasa:", error)
+    }
+  }
+
+  const handleUpdateTasa = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingTasa) return
+
+    setTasaError("")
+    setTasaMessage("")
+
+    if (editingTasa.meses <= 0 || editingTasa.tasa_anual <= 0) {
+      setTasaError("Los meses y la tasa deben ser mayores a 0")
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from("tasas_financiacion")
+        .update({ tasa_anual: editingTasa.tasa_anual })
+        .eq("meses", editingTasa.meses)
+
+      if (error) throw error
+
+      setTasaMessage("Tasa actualizada exitosamente")
+      setEditingTasa(null)
+      await loadTasas()
+    } catch (error) {
+      setTasaError("Error al actualizar la tasa")
+      console.error("Error updating tasa:", error)
+    }
+  }
+
+  const handleDeleteTasa = async (meses: number) => {
+    if (!window.confirm("¿Estás seguro de que quieres eliminar esta tasa?")) {
+      return
+    }
+
+    try {
+      const { error } = await supabase.from("tasas_financiacion").delete().eq("meses", meses)
+
+      if (error) throw error
+
+      setTasaMessage("Tasa eliminada exitosamente")
+      await loadTasas()
+    } catch (error) {
+      setTasaError("Error al eliminar la tasa")
+      console.error("Error deleting tasa:", error)
     }
   }
 
   const getMonthName = (month: number) => {
     const months = [
-      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+      "Enero",
+      "Febrero",
+      "Marzo",
+      "Abril",
+      "Mayo",
+      "Junio",
+      "Julio",
+      "Agosto",
+      "Septiembre",
+      "Octubre",
+      "Noviembre",
+      "Diciembre",
     ]
-    return months[month - 1] || 'Mes inválido'
+    return months[month - 1] || "Mes inválido"
   }
 
   const formatPrice = (price: number | undefined | null) => {
     if (price === undefined || price === null || isNaN(price)) {
-      return '$0'
+      return "$0"
     }
     return `$${price.toLocaleString()}`
   }
 
-  const filteredCars = cars.filter(car => {
+  const filteredCars = cars.filter((car) => {
     if (!car) return false
-    
+
     switch (filter) {
-      case 'available':
+      case "available":
         return !car.sold && !car.deleted
-      case 'sold':
+      case "sold":
         return car.sold && !car.deleted
-      case 'deleted':
+      case "deleted":
         return car.deleted
       default:
         return !car.deleted
@@ -427,7 +523,7 @@ export default function AdminPage() {
             <h2 className="text-3xl font-bold text-white">Panel de Administración</h2>
             <p className="mt-2 text-gray-400">Ingresa tus credenciales para continuar</p>
           </div>
-          
+
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader className="text-center">
               <div className="bg-gray-700 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -438,7 +534,9 @@ export default function AdminPage() {
             <CardContent>
               <form onSubmit={handleLogin} className="space-y-4">
                 <div>
-                  <Label htmlFor="username" className="text-gray-300">Usuario</Label>
+                  <Label htmlFor="username" className="text-gray-300">
+                    Usuario
+                  </Label>
                   <div className="relative mt-1">
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                     <Input
@@ -453,7 +551,9 @@ export default function AdminPage() {
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="password" className="text-gray-300">Contraseña</Label>
+                  <Label htmlFor="password" className="text-gray-300">
+                    Contraseña
+                  </Label>
                   <div className="relative mt-1">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                     <Input
@@ -482,18 +582,14 @@ export default function AdminPage() {
                     <AlertDescription className="text-red-300">{loginError}</AlertDescription>
                   </Alert>
                 )}
-                <Button 
-                  type="submit" 
-                  className="w-full bg-blue-600 hover:bg-blue-700"
-                  disabled={loading}
-                >
+                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={loading}>
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Iniciando sesión...
                     </>
                   ) : (
-                    'Iniciar Sesión'
+                    "Iniciar Sesión"
                   )}
                 </Button>
               </form>
@@ -514,10 +610,10 @@ export default function AdminPage() {
               <h1 className="text-3xl font-bold text-white">Panel de Administración</h1>
               <p className="text-gray-400">Gestiona autos, mensajes y cotizaciones</p>
             </div>
-            <Button 
+            <Button
               onClick={handleLogout}
               variant="outline"
-              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent"
             >
               Cerrar Sesión
             </Button>
@@ -531,12 +627,12 @@ export default function AdminPage() {
                   <Car className="h-8 w-8 text-blue-400" />
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-400">Total Autos</p>
-                    <p className="text-2xl font-bold text-white">{cars.filter(c => c && !c.deleted).length}</p>
+                    <p className="text-2xl font-bold text-white">{cars.filter((c) => c && !c.deleted).length}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-gray-800 border-gray-700">
               <CardContent className="p-6">
                 <div className="flex items-center">
@@ -544,13 +640,13 @@ export default function AdminPage() {
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-400">Disponibles</p>
                     <p className="text-2xl font-bold text-white">
-                      {cars.filter(c => c && !c.sold && !c.deleted).length}
+                      {cars.filter((c) => c && !c.sold && !c.deleted).length}
                     </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-gray-800 border-gray-700">
               <CardContent className="p-6">
                 <div className="flex items-center">
@@ -562,7 +658,7 @@ export default function AdminPage() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-gray-800 border-gray-700">
               <CardContent className="p-6">
                 <div className="flex items-center">
@@ -591,6 +687,10 @@ export default function AdminPage() {
                 <FileText className="h-4 w-4 mr-2" />
                 Cotizaciones
               </TabsTrigger>
+              <TabsTrigger value="tasas" className="data-[state=active]:bg-gray-700 text-gray-300">
+                <Percent className="h-4 w-4 mr-2" />
+                Tasas
+              </TabsTrigger>
               <TabsTrigger value="add-car" className="data-[state=active]:bg-gray-700 text-gray-300">
                 <Plus className="h-4 w-4 mr-2" />
                 Agregar Auto
@@ -609,10 +709,18 @@ export default function AdminPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-gray-700 border-gray-600">
-                          <SelectItem value="all" className="text-white">Todos</SelectItem>
-                          <SelectItem value="available" className="text-white">Disponibles</SelectItem>
-                          <SelectItem value="sold" className="text-white">Vendidos</SelectItem>
-                          <SelectItem value="deleted" className="text-white">Eliminados</SelectItem>
+                          <SelectItem value="all" className="text-white">
+                            Todos
+                          </SelectItem>
+                          <SelectItem value="available" className="text-white">
+                            Disponibles
+                          </SelectItem>
+                          <SelectItem value="sold" className="text-white">
+                            Vendidos
+                          </SelectItem>
+                          <SelectItem value="deleted" className="text-white">
+                            Eliminados
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -635,28 +743,22 @@ export default function AdminPage() {
                             <TableCell>
                               <div className="flex items-center space-x-3">
                                 <img
-                                  src={car.images?.[0] || '/placeholder.jpg'}
-                                  alt={`${car.brand || 'Auto'} ${car.model || ''}`}
+                                  src={car.images?.[0] || "/placeholder.jpg"}
+                                  alt={`${car.brand || "Auto"} ${car.model || ""}`}
                                   className="h-12 w-12 rounded-lg object-cover"
                                 />
                                 <div>
                                   <p className="font-medium text-white">
-                                    {car.brand || 'Sin marca'} {car.model || 'Sin modelo'}
+                                    {car.brand || "Sin marca"} {car.model || "Sin modelo"}
                                   </p>
-                                  <p className="text-sm text-gray-400">{car.year || 'Sin año'}</p>
+                                  <p className="text-sm text-gray-400">{car.year || "Sin año"}</p>
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell className="text-white">
-                              {formatPrice(car.price)}
-                            </TableCell>
+                            <TableCell className="text-white">{formatPrice(car.price)}</TableCell>
                             <TableCell>
-                              <Badge variant={
-                                car.deleted ? 'destructive' :
-                                !car.sold ? 'default' : 'secondary'
-                              }>
-                                {car.deleted ? 'Eliminado' : 
-                                 !car.sold ? 'Disponible' : 'Vendido'}
+                              <Badge variant={car.deleted ? "destructive" : !car.sold ? "default" : "secondary"}>
+                                {car.deleted ? "Eliminado" : !car.sold ? "Disponible" : "Vendido"}
                               </Badge>
                             </TableCell>
                             <TableCell>
@@ -679,16 +781,16 @@ export default function AdminPage() {
                                     >
                                       <Edit className="h-4 w-4" />
                                     </Button>
-                                    
+
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={() => window.open(`/autos/${car.id}`, '_blank')}
+                                      onClick={() => window.open(`/autos/${car.id}`, "_blank")}
                                       className="border-gray-600 text-gray-300 hover:bg-gray-700"
                                     >
                                       <Eye className="h-4 w-4" />
                                     </Button>
-                                    
+
                                     {!car.sold ? (
                                       <Button
                                         size="sm"
@@ -706,21 +808,16 @@ export default function AdminPage() {
                                         Marcar Disponible
                                       </Button>
                                     )}
-                                    
+
                                     <AlertDialog>
                                       <AlertDialogTrigger asChild>
-                                        <Button
-                                          size="sm"
-                                          variant="destructive"
-                                        >
+                                        <Button size="sm" variant="destructive">
                                           <Trash2 className="h-4 w-4" />
                                         </Button>
                                       </AlertDialogTrigger>
                                       <AlertDialogContent className="bg-gray-800 border-gray-700">
                                         <AlertDialogHeader>
-                                          <AlertDialogTitle className="text-white">
-                                            ¿Eliminar auto?
-                                          </AlertDialogTitle>
+                                          <AlertDialogTitle className="text-white">¿Eliminar auto?</AlertDialogTitle>
                                           <AlertDialogDescription className="text-gray-400">
                                             Esta acción moverá el auto a la papelera. Podrás restaurarlo después.
                                           </AlertDialogDescription>
@@ -747,7 +844,7 @@ export default function AdminPage() {
                       </TableBody>
                     </Table>
                   </div>
-                  
+
                   {filteredCars.length === 0 && (
                     <div className="text-center py-8">
                       <Car className="h-12 w-12 mx-auto text-gray-600 mb-4" />
@@ -782,27 +879,23 @@ export default function AdminPage() {
                       <TableBody>
                         {messages.map((message) => (
                           <TableRow key={message.id} className="border-gray-700">
-                            <TableCell className="text-white font-medium">
-                              {message.name || 'Sin nombre'}
-                            </TableCell>
-                            <TableCell className="text-gray-300">
-                              {message.email || 'Sin email'}
-                            </TableCell>
-                            <TableCell className="text-gray-300">
-                              {message.phone || 'Sin teléfono'}
-                            </TableCell>
+                            <TableCell className="text-white font-medium">{message.name || "Sin nombre"}</TableCell>
+                            <TableCell className="text-gray-300">{message.email || "Sin email"}</TableCell>
+                            <TableCell className="text-gray-300">{message.phone || "Sin teléfono"}</TableCell>
                             <TableCell className="text-gray-300 max-w-xs truncate">
-                              {message.message || 'Sin mensaje'}
+                              {message.message || "Sin mensaje"}
                             </TableCell>
                             <TableCell className="text-gray-300">
-                              {message.created_at ? new Date(message.created_at).toLocaleDateString('es-ES') : 'Sin fecha'}
+                              {message.created_at
+                                ? new Date(message.created_at).toLocaleDateString("es-ES")
+                                : "Sin fecha"}
                             </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
                   </div>
-                  
+
                   {messages.length === 0 && (
                     <div className="text-center py-8">
                       <MessageSquare className="h-12 w-12 mx-auto text-gray-600 mb-4" />
@@ -830,7 +923,9 @@ export default function AdminPage() {
                   <form onSubmit={handleCotizacionUpload} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="mes" className="text-gray-300">Mes</Label>
+                        <Label htmlFor="mes" className="text-gray-300">
+                          Mes
+                        </Label>
                         <Select value={cotizacionMes} onValueChange={setCotizacionMes}>
                           <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
                             <SelectValue placeholder="Selecciona el mes" />
@@ -845,7 +940,9 @@ export default function AdminPage() {
                         </Select>
                       </div>
                       <div>
-                        <Label htmlFor="anio" className="text-gray-300">Año</Label>
+                        <Label htmlFor="anio" className="text-gray-300">
+                          Año
+                        </Label>
                         <Select value={cotizacionAnio} onValueChange={setCotizacionAnio}>
                           <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
                             <SelectValue placeholder="Selecciona el año" />
@@ -863,9 +960,11 @@ export default function AdminPage() {
                         </Select>
                       </div>
                     </div>
-                    
+
                     <div>
-                      <Label htmlFor="file" className="text-gray-300">Archivo PDF</Label>
+                      <Label htmlFor="file" className="text-gray-300">
+                        Archivo PDF
+                      </Label>
                       <Input
                         id="file"
                         type="file"
@@ -889,8 +988,8 @@ export default function AdminPage() {
                       </Alert>
                     )}
 
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       disabled={uploadingCotizacion || !cotizacionFile || !cotizacionMes || !cotizacionAnio}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
@@ -914,9 +1013,7 @@ export default function AdminPage() {
               <Card className="bg-gray-800 border-gray-700">
                 <CardHeader>
                   <CardTitle className="text-white">Lista de Cotizaciones</CardTitle>
-                  <CardDescription className="text-gray-400">
-                    Todas las cotizaciones subidas al sistema
-                  </CardDescription>
+                  <CardDescription className="text-gray-400">Todas las cotizaciones subidas al sistema</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="overflow-x-auto">
@@ -936,26 +1033,31 @@ export default function AdminPage() {
                             <TableCell className="text-white font-medium">
                               {getMonthName(cotizacion.mes)} {cotizacion.anio}
                             </TableCell>
-                            <TableCell className="text-gray-300">
-                              {cotizacion.nombre_archivo || 'Sin nombre'}
-                            </TableCell>
+                            <TableCell className="text-gray-300">{cotizacion.nombre_archivo || "Sin nombre"}</TableCell>
                             <TableCell>
-                              <Badge variant={
-                                cotizacion.estado === 'completado' ? 'default' : 
-                                cotizacion.estado === 'error' ? 'destructive' : 'secondary'
-                              }>
-                                {cotizacion.estado || 'Sin estado'}
+                              <Badge
+                                variant={
+                                  cotizacion.estado === "completado"
+                                    ? "default"
+                                    : cotizacion.estado === "error"
+                                      ? "destructive"
+                                      : "secondary"
+                                }
+                              >
+                                {cotizacion.estado || "Sin estado"}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-gray-300">
-                              {cotizacion.fecha_subida ? new Date(cotizacion.fecha_subida).toLocaleDateString('es-ES') : 'Sin fecha'}
+                              {cotizacion.fecha_subida
+                                ? new Date(cotizacion.fecha_subida).toLocaleDateString("es-ES")
+                                : "Sin fecha"}
                             </TableCell>
                             <TableCell>
                               <div className="flex space-x-2">
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => window.open(cotizacion.url, '_blank')}
+                                  onClick={() => window.open(cotizacion.url, "_blank")}
                                   className="border-gray-600 text-gray-300 hover:bg-gray-700"
                                 >
                                   <Eye className="h-4 w-4" />
@@ -964,7 +1066,7 @@ export default function AdminPage() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => {
-                                    const link = document.createElement('a')
+                                    const link = document.createElement("a")
                                     link.href = cotizacion.url
                                     link.download = cotizacion.nombre_archivo
                                     link.click()
@@ -975,18 +1077,13 @@ export default function AdminPage() {
                                 </Button>
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
-                                    <Button
-                                      size="sm"
-                                      variant="destructive"
-                                    >
+                                    <Button size="sm" variant="destructive">
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
                                   </AlertDialogTrigger>
                                   <AlertDialogContent className="bg-gray-800 border-gray-700">
                                     <AlertDialogHeader>
-                                      <AlertDialogTitle className="text-white">
-                                        ¿Eliminar cotización?
-                                      </AlertDialogTitle>
+                                      <AlertDialogTitle className="text-white">¿Eliminar cotización?</AlertDialogTitle>
                                       <AlertDialogDescription className="text-gray-400">
                                         Esta acción eliminará permanentemente la cotización y el archivo PDF.
                                       </AlertDialogDescription>
@@ -1011,11 +1108,114 @@ export default function AdminPage() {
                       </TableBody>
                     </Table>
                   </div>
-                  
+
                   {cotizaciones.length === 0 && (
                     <div className="text-center py-8">
                       <FileText className="h-12 w-12 mx-auto text-gray-600 mb-4" />
                       <p className="text-gray-400">No hay cotizaciones subidas aún</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Tasas Tab */}
+            <TabsContent value="tasas" className="space-y-6">
+              <Card className="bg-gray-800 border-gray-700">
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle className="text-white flex items-center gap-2">
+                        <Percent className="h-5 w-5" />
+                        Gestión de Tasas de Financiación
+                      </CardTitle>
+                      <CardDescription className="text-gray-400">
+                        Administra las tasas de interés para diferentes plazos de financiación
+                      </CardDescription>
+                    </div>
+                    <Button onClick={() => setShowTasaModal(true)} className="bg-blue-600 hover:bg-blue-700">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Agregar Tasa
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {tasaMessage && (
+                    <Alert className="bg-green-900/20 border-green-800 mb-4">
+                      <CheckCircle className="h-4 w-4 text-green-400" />
+                      <AlertDescription className="text-green-300">{tasaMessage}</AlertDescription>
+                    </Alert>
+                  )}
+
+                  {tasaError && (
+                    <Alert variant="destructive" className="bg-red-900/20 border-red-800 mb-4">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription className="text-red-300">{tasaError}</AlertDescription>
+                    </Alert>
+                  )}
+
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-gray-700">
+                          <TableHead className="text-gray-300">Plazo (Meses)</TableHead>
+                          <TableHead className="text-gray-300">Tasa Anual (%)</TableHead>
+                          <TableHead className="text-gray-300">Acciones</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {tasas.map((tasa) => (
+                          <TableRow key={tasa.meses} className="border-gray-700">
+                            <TableCell className="text-white font-medium">{tasa.meses} meses</TableCell>
+                            <TableCell className="text-white">{tasa.tasa_anual}%</TableCell>
+                            <TableCell>
+                              <div className="flex space-x-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setEditingTasa(tasa)}
+                                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button size="sm" variant="destructive">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent className="bg-gray-800 border-gray-700">
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle className="text-white">¿Eliminar tasa?</AlertDialogTitle>
+                                      <AlertDialogDescription className="text-gray-400">
+                                        Esta acción eliminará permanentemente la tasa de {tasa.meses} meses.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel className="bg-gray-700 border-gray-600 text-gray-300">
+                                        Cancelar
+                                      </AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleDeleteTasa(tasa.meses)}
+                                        className="bg-red-600 hover:bg-red-700"
+                                      >
+                                        Eliminar
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {tasas.length === 0 && (
+                    <div className="text-center py-8">
+                      <Percent className="h-12 w-12 mx-auto text-gray-600 mb-4" />
+                      <p className="text-gray-400">No hay tasas configuradas aún</p>
                     </div>
                   )}
                 </CardContent>
@@ -1035,7 +1235,9 @@ export default function AdminPage() {
                   <form onSubmit={handleAddCar} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="brand" className="text-gray-300">Marca</Label>
+                        <Label htmlFor="brand" className="text-gray-300">
+                          Marca
+                        </Label>
                         <Input
                           id="brand"
                           value={newCar.brand}
@@ -1045,7 +1247,9 @@ export default function AdminPage() {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="model" className="text-gray-300">Modelo</Label>
+                        <Label htmlFor="model" className="text-gray-300">
+                          Modelo
+                        </Label>
                         <Input
                           id="model"
                           value={newCar.model}
@@ -1055,40 +1259,48 @@ export default function AdminPage() {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="year" className="text-gray-300">Año</Label>
+                        <Label htmlFor="year" className="text-gray-300">
+                          Año
+                        </Label>
                         <Input
                           id="year"
                           type="number"
                           value={newCar.year}
-                          onChange={(e) => setNewCar({ ...newCar, year: parseInt(e.target.value) || 0 })}
+                          onChange={(e) => setNewCar({ ...newCar, year: Number.parseInt(e.target.value) || 0 })}
                           className="bg-gray-700 border-gray-600 text-white"
                           required
                         />
                       </div>
                       <div>
-                        <Label htmlFor="price" className="text-gray-300">Precio</Label>
+                        <Label htmlFor="price" className="text-gray-300">
+                          Precio
+                        </Label>
                         <Input
                           id="price"
                           type="number"
                           value={newCar.price}
-                          onChange={(e) => setNewCar({ ...newCar, price: parseInt(e.target.value) || 0 })}
+                          onChange={(e) => setNewCar({ ...newCar, price: Number.parseInt(e.target.value) || 0 })}
                           className="bg-gray-700 border-gray-600 text-white"
                           required
                         />
                       </div>
                       <div>
-                        <Label htmlFor="mileage" className="text-gray-300">Kilometraje</Label>
+                        <Label htmlFor="mileage" className="text-gray-300">
+                          Kilometraje
+                        </Label>
                         <Input
                           id="mileage"
                           type="number"
                           value={newCar.mileage}
-                          onChange={(e) => setNewCar({ ...newCar, mileage: parseInt(e.target.value) || 0 })}
+                          onChange={(e) => setNewCar({ ...newCar, mileage: Number.parseInt(e.target.value) || 0 })}
                           className="bg-gray-700 border-gray-600 text-white"
                           required
                         />
                       </div>
                       <div>
-                        <Label htmlFor="color" className="text-gray-300">Color</Label>
+                        <Label htmlFor="color" className="text-gray-300">
+                          Color
+                        </Label>
                         <Input
                           id="color"
                           value={newCar.color}
@@ -1098,36 +1310,61 @@ export default function AdminPage() {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="fuel" className="text-gray-300">Combustible</Label>
+                        <Label htmlFor="fuel" className="text-gray-300">
+                          Combustible
+                        </Label>
                         <Select value={newCar.fuel} onValueChange={(value) => setNewCar({ ...newCar, fuel: value })}>
                           <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-gray-700 border-gray-600">
-                            <SelectItem value="Nafta" className="text-white">Nafta</SelectItem>
-                            <SelectItem value="Diesel" className="text-white">Diesel</SelectItem>
-                            <SelectItem value="GNC" className="text-white">GNC</SelectItem>
-                            <SelectItem value="Híbrido" className="text-white">Híbrido</SelectItem>
-                            <SelectItem value="Eléctrico" className="text-white">Eléctrico</SelectItem>
+                            <SelectItem value="Nafta" className="text-white">
+                              Nafta
+                            </SelectItem>
+                            <SelectItem value="Diesel" className="text-white">
+                              Diesel
+                            </SelectItem>
+                            <SelectItem value="GNC" className="text-white">
+                              GNC
+                            </SelectItem>
+                            <SelectItem value="Híbrido" className="text-white">
+                              Híbrido
+                            </SelectItem>
+                            <SelectItem value="Eléctrico" className="text-white">
+                              Eléctrico
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
-                        <Label htmlFor="transmission" className="text-gray-300">Transmisión</Label>
-                        <Select value={newCar.transmission} onValueChange={(value) => setNewCar({ ...newCar, transmission: value })}>
+                        <Label htmlFor="transmission" className="text-gray-300">
+                          Transmisión
+                        </Label>
+                        <Select
+                          value={newCar.transmission}
+                          onValueChange={(value) => setNewCar({ ...newCar, transmission: value })}
+                        >
                           <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-gray-700 border-gray-600">
-                            <SelectItem value="Manual" className="text-white">Manual</SelectItem>
-                            <SelectItem value="Automática" className="text-white">Automática</SelectItem>
-                            <SelectItem value="CVT" className="text-white">CVT</SelectItem>
+                            <SelectItem value="Manual" className="text-white">
+                              Manual
+                            </SelectItem>
+                            <SelectItem value="Automática" className="text-white">
+                              Automática
+                            </SelectItem>
+                            <SelectItem value="CVT" className="text-white">
+                              CVT
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                     </div>
                     <div>
-                      <Label htmlFor="description" className="text-gray-300">Descripción</Label>
+                      <Label htmlFor="description" className="text-gray-300">
+                        Descripción
+                      </Label>
                       <Textarea
                         id="description"
                         value={newCar.description}
@@ -1174,102 +1411,146 @@ export default function AdminPage() {
                   <form onSubmit={handleUpdateCar} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="edit-brand" className="text-gray-300">Marca</Label>
+                        <Label htmlFor="edit-brand" className="text-gray-300">
+                          Marca
+                        </Label>
                         <Input
                           id="edit-brand"
-                          value={editingCar.brand || ''}
+                          value={editingCar.brand || ""}
                           onChange={(e) => setEditingCar({ ...editingCar, brand: e.target.value })}
                           className="bg-gray-700 border-gray-600 text-white"
                           required
                         />
                       </div>
                       <div>
-                        <Label htmlFor="edit-model" className="text-gray-300">Modelo</Label>
+                        <Label htmlFor="edit-model" className="text-gray-300">
+                          Modelo
+                        </Label>
                         <Input
                           id="edit-model"
-                          value={editingCar.model || ''}
+                          value={editingCar.model || ""}
                           onChange={(e) => setEditingCar({ ...editingCar, model: e.target.value })}
                           className="bg-gray-700 border-gray-600 text-white"
                           required
                         />
                       </div>
                       <div>
-                        <Label htmlFor="edit-year" className="text-gray-300">Año</Label>
+                        <Label htmlFor="edit-year" className="text-gray-300">
+                          Año
+                        </Label>
                         <Input
                           id="edit-year"
                           type="number"
-                          value={editingCar.year || ''}
-                          onChange={(e) => setEditingCar({ ...editingCar, year: parseInt(e.target.value) || 0 })}
+                          value={editingCar.year || ""}
+                          onChange={(e) => setEditingCar({ ...editingCar, year: Number.parseInt(e.target.value) || 0 })}
                           className="bg-gray-700 border-gray-600 text-white"
                           required
                         />
                       </div>
                       <div>
-                        <Label htmlFor="edit-price" className="text-gray-300">Precio</Label>
+                        <Label htmlFor="edit-price" className="text-gray-300">
+                          Precio
+                        </Label>
                         <Input
                           id="edit-price"
                           type="number"
-                          value={editingCar.price || ''}
-                          onChange={(e) => setEditingCar({ ...editingCar, price: parseInt(e.target.value) || 0 })}
+                          value={editingCar.price || ""}
+                          onChange={(e) =>
+                            setEditingCar({ ...editingCar, price: Number.parseInt(e.target.value) || 0 })
+                          }
                           className="bg-gray-700 border-gray-600 text-white"
                           required
                         />
                       </div>
                       <div>
-                        <Label htmlFor="edit-mileage" className="text-gray-300">Kilometraje</Label>
+                        <Label htmlFor="edit-mileage" className="text-gray-300">
+                          Kilometraje
+                        </Label>
                         <Input
                           id="edit-mileage"
                           type="number"
-                          value={editingCar.mileage || ''}
-                          onChange={(e) => setEditingCar({ ...editingCar, mileage: parseInt(e.target.value) || 0 })}
+                          value={editingCar.mileage || ""}
+                          onChange={(e) =>
+                            setEditingCar({ ...editingCar, mileage: Number.parseInt(e.target.value) || 0 })
+                          }
                           className="bg-gray-700 border-gray-600 text-white"
                           required
                         />
                       </div>
                       <div>
-                        <Label htmlFor="edit-color" className="text-gray-300">Color</Label>
+                        <Label htmlFor="edit-color" className="text-gray-300">
+                          Color
+                        </Label>
                         <Input
                           id="edit-color"
-                          value={editingCar.color || ''}
+                          value={editingCar.color || ""}
                           onChange={(e) => setEditingCar({ ...editingCar, color: e.target.value })}
                           className="bg-gray-700 border-gray-600 text-white"
                           required
                         />
                       </div>
                       <div>
-                        <Label htmlFor="edit-fuel" className="text-gray-300">Combustible</Label>
-                        <Select value={editingCar.fuel || 'Nafta'} onValueChange={(value) => setEditingCar({ ...editingCar, fuel: value })}>
+                        <Label htmlFor="edit-fuel" className="text-gray-300">
+                          Combustible
+                        </Label>
+                        <Select
+                          value={editingCar.fuel || "Nafta"}
+                          onValueChange={(value) => setEditingCar({ ...editingCar, fuel: value })}
+                        >
                           <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-gray-700 border-gray-600">
-                            <SelectItem value="Nafta" className="text-white">Nafta</SelectItem>
-                            <SelectItem value="Diesel" className="text-white">Diesel</SelectItem>
-                            <SelectItem value="GNC" className="text-white">GNC</SelectItem>
-                            <SelectItem value="Híbrido" className="text-white">Híbrido</SelectItem>
-                            <SelectItem value="Eléctrico" className="text-white">Eléctrico</SelectItem>
+                            <SelectItem value="Nafta" className="text-white">
+                              Nafta
+                            </SelectItem>
+                            <SelectItem value="Diesel" className="text-white">
+                              Diesel
+                            </SelectItem>
+                            <SelectItem value="GNC" className="text-white">
+                              GNC
+                            </SelectItem>
+                            <SelectItem value="Híbrido" className="text-white">
+                              Híbrido
+                            </SelectItem>
+                            <SelectItem value="Eléctrico" className="text-white">
+                              Eléctrico
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
-                        <Label htmlFor="edit-transmission" className="text-gray-300">Transmisión</Label>
-                        <Select value={editingCar.transmission || 'Manual'} onValueChange={(value) => setEditingCar({ ...editingCar, transmission: value })}>
+                        <Label htmlFor="edit-transmission" className="text-gray-300">
+                          Transmisión
+                        </Label>
+                        <Select
+                          value={editingCar.transmission || "Manual"}
+                          onValueChange={(value) => setEditingCar({ ...editingCar, transmission: value })}
+                        >
                           <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-gray-700 border-gray-600">
-                            <SelectItem value="Manual" className="text-white">Manual</SelectItem>
-                            <SelectItem value="Automática" className="text-white">Automática</SelectItem>
-                            <SelectItem value="CVT" className="text-white">CVT</SelectItem>
+                            <SelectItem value="Manual" className="text-white">
+                              Manual
+                            </SelectItem>
+                            <SelectItem value="Automática" className="text-white">
+                              Automática
+                            </SelectItem>
+                            <SelectItem value="CVT" className="text-white">
+                              CVT
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                     </div>
                     <div>
-                      <Label htmlFor="edit-description" className="text-gray-300">Descripción</Label>
+                      <Label htmlFor="edit-description" className="text-gray-300">
+                        Descripción
+                      </Label>
                       <Textarea
                         id="edit-description"
-                        value={editingCar.description || ''}
+                        value={editingCar.description || ""}
                         onChange={(e) => setEditingCar({ ...editingCar, description: e.target.value })}
                         className="bg-gray-700 border-gray-600 text-white"
                         rows={4}
@@ -1291,10 +1572,135 @@ export default function AdminPage() {
                             Guardando...
                           </>
                         ) : (
-                          'Guardar Cambios'
+                          "Guardar Cambios"
                         )}
                       </Button>
-                      <Button type="button" variant="outline" onClick={() => setEditingCar(null)} className="border-gray-600 text-gray-300 hover:bg-gray-700">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setEditingCar(null)}
+                        className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Add Tasa Modal */}
+          {showTasaModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <Card className="w-full max-w-md bg-gray-800 border-gray-700">
+                <CardHeader>
+                  <CardTitle className="text-white">Agregar Nueva Tasa</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleAddTasa} className="space-y-4">
+                    <div>
+                      <Label htmlFor="meses" className="text-gray-300">
+                        Plazo (Meses)
+                      </Label>
+                      <Input
+                        id="meses"
+                        type="number"
+                        value={newTasa.meses || ""}
+                        onChange={(e) => setNewTasa({ ...newTasa, meses: Number.parseInt(e.target.value) || 0 })}
+                        className="bg-gray-700 border-gray-600 text-white"
+                        placeholder="Ej: 12, 24, 36..."
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="tasa" className="text-gray-300">
+                        Tasa Anual (%)
+                      </Label>
+                      <Input
+                        id="tasa"
+                        type="number"
+                        step="0.01"
+                        value={newTasa.tasa_anual || ""}
+                        onChange={(e) => setNewTasa({ ...newTasa, tasa_anual: Number.parseFloat(e.target.value) || 0 })}
+                        className="bg-gray-700 border-gray-600 text-white"
+                        placeholder="Ej: 35.5"
+                        required
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                        Agregar
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setShowTasaModal(false)
+                          setNewTasa({ meses: 0, tasa_anual: 0 })
+                          setTasaError("")
+                        }}
+                        className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Edit Tasa Modal */}
+          {editingTasa && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <Card className="w-full max-w-md bg-gray-800 border-gray-700">
+                <CardHeader>
+                  <CardTitle className="text-white">Editar Tasa</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleUpdateTasa} className="space-y-4">
+                    <div>
+                      <Label htmlFor="edit-meses" className="text-gray-300">
+                        Plazo (Meses)
+                      </Label>
+                      <Input
+                        id="edit-meses"
+                        type="number"
+                        value={editingTasa.meses}
+                        className="bg-gray-700 border-gray-600 text-white"
+                        disabled
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit-tasa" className="text-gray-300">
+                        Tasa Anual (%)
+                      </Label>
+                      <Input
+                        id="edit-tasa"
+                        type="number"
+                        step="0.01"
+                        value={editingTasa.tasa_anual || ""}
+                        onChange={(e) =>
+                          setEditingTasa({ ...editingTasa, tasa_anual: Number.parseFloat(e.target.value) || 0 })
+                        }
+                        className="bg-gray-700 border-gray-600 text-white"
+                        required
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                        Actualizar
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setEditingTasa(null)
+                          setTasaError("")
+                        }}
+                        className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                      >
                         Cancelar
                       </Button>
                     </div>

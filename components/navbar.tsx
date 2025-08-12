@@ -18,7 +18,7 @@ export default function Navbar() {
           </Link>
 
           <div className="hidden md:flex items-center space-x-6">
-            {["/", "/autos", "/vendidos", "/quienes-somos", "/contacto", "/cotizacion"].map((path, i) => (
+            {["/", "/autos", "/vendidos", "/quienes-somos", "/contacto", "/cotizacion", "/financiacion"].map((path, i) => (
               <Link
                 key={i}
                 href={path}
@@ -32,6 +32,7 @@ export default function Navbar() {
                     "Quiénes Somos",
                     "Contacto",
                     "Cotización",
+                    "Financiacion",
                   ][i]
                 }
               </Link>
@@ -53,7 +54,7 @@ export default function Navbar() {
 
         {isOpen && (
           <div className="md:hidden bg-black/95 px-4 py-3 space-y-2">
-            {["/", "/autos", "/vendidos", "/quienes-somos", "/contacto", "/cotizacion"].map((path, i) => (
+            {["/", "/autos", "/vendidos", "/quienes-somos", "/contacto", "/cotizacion", "/financiacion"].map((path, i) => (
               <Link
                 key={i}
                 href={path}
@@ -67,6 +68,7 @@ export default function Navbar() {
                     "Quiénes Somos",
                     "Contacto",
                     "Cotización",
+                    "Financiacion",
                   ][i]
                 }
               </Link>
