@@ -13,12 +13,17 @@ export const metadata: Metadata = {
     "Concesionaria especializada en la intermediación de compra y venta de vehículos premium. Tu socio de confianza en el mundo automotor.",
   keywords: "autos, venta, compra, vehículos, concesionaria, premium, usados",
   authors: [{ name: "Rama Automotores" }],
+  icons: {
+    icon: [
+      { url: "/car.svg", type: "image/svg+xml" },                         
+    ],
+    apple: "/favicon.png",
+  },
   openGraph: {
     title: "Rama Automotores - Vehículos Premium",
     description: "Encuentra tu próximo vehículo con nosotros",
-    type: "website",
   },
-    generator: 'v0.dev'
+    generator: 'v0.app'
 }
 
 export default function RootLayout({

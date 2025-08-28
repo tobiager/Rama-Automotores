@@ -1,4 +1,3 @@
-
 <h1 align="center">Rama Automotores </h1>
 
 <p align="center">
@@ -78,7 +77,7 @@ Se gestionan tablas para:
 
 ## 🧱 Estructura del Proyecto
 
-```bash
+\`\`\`bash
 /app
 ├── page.tsx
 ├── autos/
@@ -102,12 +101,12 @@ Se gestionan tablas para:
 
 /public
 └── assets/
-```
+\`\`\`
 
 ---
 
 ## 🚀 Instalación
-```
+\`\`\`
 # Clonar repositorio
 git clone https://github.com/tu-usuario/rama-automotores.git
 cd rama-automotores
@@ -121,7 +120,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=ey...
 
 # Ejecutar en desarrollo
 npm run dev
-```
+\`\`\`
 
 ---
 
