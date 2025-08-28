@@ -1,6 +1,5 @@
-<p align="center">
-  <img src="./public/rama.png" alt="Logo de Rama Automotores" width="120"/>
-</p>
+
+<h1 align="center">Rama Automotores </h1>
 
 <p align="center">
   <img src="https://img.shields.io/badge/-Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js"/>
@@ -9,10 +8,8 @@
   <img src="https://img.shields.io/badge/-TailwindCSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white"/>
   <img src="https://img.shields.io/badge/-TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white"/>
   <img src="https://img.shields.io/badge/-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white"/>
-  <img src="https://img.shields.io/badge/-En%20Desarrollo-yellow?style=for-the-badge" alt="Estado"/>
+  <img src="https://img.shields.io/badge/-Finalizado-greenlight?style=for-the-badge" alt="Estado"/>
 </p>
-
-# Rama Automotores 🚗
 
 **Rama Automotores** es una plataforma web desarrollada con **Next.js 15 y Supabase** que busca digitalizar la compra y cotización de autos en Argentina.  
 Permite a los usuarios ver publicaciones de vehículos, calcular cotizaciones basadas en InfoAuto y simular planes de financiación con tasas reales.
